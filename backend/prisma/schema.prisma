@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String
+  password    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  projects    Project[]
+  shares      ShareLink[]
+  timeEntries TimeEntry[]
+  identities  AuthIdentity[]
+  telegramLink TelegramLink?
+  telegramTokens TelegramToken[]
+}
+
+model AuthIdentity {
+  id                String   @id @default(cuid())
+  provider          String
+  providerAccountId String
+  email             String?
+  displayName       String?
+  avatarUrl         String?
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lastLoginAt       DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model TelegramLink {
+  id           String   @id @default(cuid())
+  telegramId   String   @unique
+  chatId       String   @unique
+  username     String?
+  firstName    String?
+  lastName     String?
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  linkedAt     DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model TelegramToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  purpose   String
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  color       String       @default("#087f72")
+  icon        String       @default("server")
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes       Note[]
+  tasks       Task[]
+  timeEntries TimeEntry[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+model Task {
+  id               String       @id @default(cuid())
+  title            String
+  description      String?
+  status           String       @default("todo")
+  priority         String       @default("medium")
+  dueDate          DateTime?
+  estimatedMinutes Int?
+  sortOrder        Int          @default(0)
+  projectId        String
+  project          Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  timeEntries      TimeEntry[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([projectId])
+  @@index([projectId, status])
+}
+
+model TimeEntry {
+  id        String    @id @default(cuid())
+  taskId    String?
+  task      Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt DateTime
+  endedAt   DateTime?
+  duration  Int?
+  memo      String?
+  createdAt DateTime  @default(now())
+
+  @@index([projectId, startedAt])
+  @@index([userId, startedAt])
+  @@index([taskId])
+}
+
+model Note {
+  id          String       @id @default(cuid())
+  title       String
+  type        String       @default("instruction")
+  category    String       @default("Общее")
+  url         String?
+  host        String?
+  port        String?
+  login       String?
+  password    String?
+  totpSecret  String?
+  sshKey      String?
+  memo        String?
+  tags        String       @default("[]")
+  content     String       @default("{}")
+  favorite    Boolean      @default(false)
+  pinned      Boolean      @default(false)
+  archived    Boolean      @default(false)
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([projectId, archived, updatedAt])
+  @@index([projectId, type])
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  filename  String
+  path      String
+  mimeType  String
+  size      Int      @default(0)
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([noteId])
+}
+
+model ShareLink {
+  id           String    @id @default(cuid())
+  token        String    @unique
+  title        String?
+  noteId       String?
+  projectId    String?
+  expiresAt    DateTime?
+  viewOnly     Boolean   @default(true)
+  shareMode    String    @default("masked")
+  passwordHash String?
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([noteId])
+}

@@ -1,0 +1,12 @@
+.git
+.github
+.next
+.npm-cache
+node_modules
+backend
+coverage
+out
+work
+*.log
+.env*
+!.env.docker.example
