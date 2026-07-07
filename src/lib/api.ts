@@ -244,4 +244,78 @@ export const api = {
     remove: (token: string, id: string) =>
       request<{ ok: boolean }>(`/time-entries/${id}`, { method: "DELETE", token }),
   },
+  facility: {
+    listInventory: (token: string, projectId: string) =>
+      request<import("./facility-types").InventoryItem[]>(`/facility/inventory?projectId=${projectId}`, { token }),
+    createInventory: (
+      token: string,
+      data: Partial<import("./facility-types").InventoryItem> & { projectId: string; name: string },
+    ) => request<import("./facility-types").InventoryItem>("/facility/inventory", { method: "POST", body: data, token }),
+    updateInventory: (token: string, id: string, data: Partial<import("./facility-types").InventoryItem>) =>
+      request<import("./facility-types").InventoryItem>(`/facility/inventory/${id}`, { method: "PATCH", body: data, token }),
+    removeInventory: (token: string, id: string) =>
+      request<{ ok: boolean }>(`/facility/inventory/${id}`, { method: "DELETE", token }),
+    listWriteOffs: (token: string, projectId: string) =>
+      request<import("./facility-types").InventoryWriteOff[]>(`/facility/write-offs?projectId=${projectId}`, { token }),
+    createWriteOff: (
+      token: string,
+      data: { projectId: string; itemId: string; quantity: number; reason?: string; comment?: string },
+    ) =>
+      request<import("./facility-types").InventoryWriteOff>("/facility/write-offs", { method: "POST", body: data, token }),
+    listRooms: (token: string, projectId: string) =>
+      request<import("./facility-types").OfficeRoom[]>(`/facility/rooms?projectId=${projectId}`, { token }),
+    createRoom: (
+      token: string,
+      data: { projectId: string; name: string; building?: string; floor?: string },
+    ) => request<import("./facility-types").OfficeRoom>("/facility/rooms", { method: "POST", body: data, token }),
+    updateRoom: (token: string, id: string, data: Partial<import("./facility-types").OfficeRoom>) =>
+      request<import("./facility-types").OfficeRoom>(`/facility/rooms/${id}`, { method: "PATCH", body: data, token }),
+    removeRoom: (token: string, id: string) =>
+      request<{ ok: boolean }>(`/facility/rooms/${id}`, { method: "DELETE", token }),
+    createEquipmentRow: (
+      token: string,
+      data: { roomId: string; label?: string; cells?: Record<string, string | boolean | number | null> },
+    ) =>
+      request<import("./facility-types").OfficeEquipmentRow>("/facility/equipment-rows", {
+        method: "POST",
+        body: data,
+        token,
+      }),
+    updateEquipmentRow: (
+      token: string,
+      id: string,
+      data: Partial<import("./facility-types").OfficeEquipmentRow>,
+    ) =>
+      request<import("./facility-types").OfficeEquipmentRow>(`/facility/equipment-rows/${id}`, {
+        method: "PATCH",
+        body: data,
+        token,
+      }),
+    removeEquipmentRow: (token: string, id: string) =>
+      request<{ ok: boolean }>(`/facility/equipment-rows/${id}`, { method: "DELETE", token }),
+    getColumnDefs: (token: string, projectId: string) =>
+      request<{ inventoryColumnDefs: import("./facility-types").TableColumnDef[]; equipmentColumnDefs: import("./facility-types").TableColumnDef[] }>(
+        `/facility/column-defs?projectId=${projectId}`,
+        { token },
+      ),
+    updateColumnDefs: (
+      token: string,
+      projectId: string,
+      data: { inventoryColumnDefs?: import("./facility-types").TableColumnDef[]; equipmentColumnDefs?: import("./facility-types").TableColumnDef[] },
+    ) =>
+      request<{ inventoryColumnDefs: import("./facility-types").TableColumnDef[]; equipmentColumnDefs: import("./facility-types").TableColumnDef[] }>(
+        `/facility/column-defs?projectId=${projectId}`,
+        { method: "PATCH", body: data, token },
+      ),
+    listNetworkMaps: (token: string, projectId: string) =>
+      request<import("./facility-types").NetworkMap[]>(`/facility/network-maps?projectId=${projectId}`, { token }),
+    getNetworkMap: (token: string, id: string) =>
+      request<import("./facility-types").NetworkMap>(`/facility/network-maps/${id}`, { token }),
+    createNetworkMap: (token: string, data: { projectId: string; name?: string }) =>
+      request<import("./facility-types").NetworkMap>("/facility/network-maps", { method: "POST", body: data, token }),
+    updateNetworkMap: (token: string, id: string, data: Partial<import("./facility-types").NetworkMap>) =>
+      request<import("./facility-types").NetworkMap>(`/facility/network-maps/${id}`, { method: "PATCH", body: data, token }),
+    removeNetworkMap: (token: string, id: string) =>
+      request<{ ok: boolean }>(`/facility/network-maps/${id}`, { method: "DELETE", token }),
+  },
 };

@@ -18,6 +18,8 @@ type AppState = {
   theme: Theme;
   notesView: NotesView;
   sidebarCollapsed: boolean;
+  shellListWidth: number | null;
+  shellEditorWidth: number | null;
   tasks: Task[];
   selectedTaskId: string | null;
   activeTimer: TimeEntry | null;
@@ -34,6 +36,8 @@ type AppState = {
   setNotesView: (view: NotesView) => void;
   setSidebarCollapsed: (v: boolean) => void;
   toggleSidebar: () => void;
+  setShellListWidth: (v: number | null) => void;
+  setShellEditorWidth: (v: number | null) => void;
   setTasks: (tasks: Task[]) => void;
   setSelectedTask: (id: string | null) => void;
   setActiveTimer: (entry: TimeEntry | null) => void;
@@ -59,6 +63,8 @@ export const useAppStore = create<AppState>()(
       theme: "dark",
       notesView: "cards",
       sidebarCollapsed: false,
+      shellListWidth: null,
+      shellEditorWidth: null,
       tasks: [],
       selectedTaskId: null,
       activeTimer: null,
@@ -108,6 +114,8 @@ export const useAppStore = create<AppState>()(
       setNotesView: (notesView) => set({ notesView }),
       setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+      setShellListWidth: (shellListWidth) => set({ shellListWidth }),
+      setShellEditorWidth: (shellEditorWidth) => set({ shellEditorWidth }),
       setTasks: (tasks) => set({ tasks }),
       setSelectedTask: (id) => set({ selectedTaskId: id }),
       setActiveTimer: (entry) => set({ activeTimer: entry }),
@@ -172,6 +180,8 @@ export const useAppStore = create<AppState>()(
         theme: state.theme,
         notesView: state.notesView,
         sidebarCollapsed: state.sidebarCollapsed,
+        shellListWidth: state.shellListWidth,
+        shellEditorWidth: state.shellEditorWidth,
         appMode: state.appMode,
       }),
       onRehydrateStorage: () => (state) => {

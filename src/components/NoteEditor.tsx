@@ -125,7 +125,7 @@ export function NoteEditor({ note, projects, vaultSection, onMoved }: NoteEditor
           setSaveState("error");
           toast("Ошибка сохранения", "error");
         }
-      }, 450);
+      }, 800);
     },
     [draft, note.id, token, upsertNote, toast],
   );

@@ -1,6 +1,6 @@
 export type NoteType = "credential" | "instruction" | "schema" | "link";
 export type VaultSection = "passwords" | "instructions" | "schemas";
-export type AppMode = "vault" | "tasks";
+export type AppMode = "vault" | "tasks" | "inventory" | "equipment" | "network";
 
 export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskPriority = "low" | "medium" | "high";

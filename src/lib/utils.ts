@@ -1,5 +1,22 @@
 import type { Note } from "./types";
 
+export function debounceByKey(
+  timers: Map<string, ReturnType<typeof setTimeout>>,
+  key: string,
+  fn: () => void,
+  delayMs = 600,
+) {
+  const existing = timers.get(key);
+  if (existing) clearTimeout(existing);
+  timers.set(
+    key,
+    setTimeout(() => {
+      timers.delete(key);
+      fn();
+    }, delayMs),
+  );
+}
+
 export function isSafeHttpUrl(url: string) {
   const value = url.trim();
   if (!value) return false;

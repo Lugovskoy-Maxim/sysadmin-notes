@@ -12,12 +12,17 @@ import { CryptoModule } from './crypto/crypto.module';
 import { TasksModule } from './tasks/tasks.module';
 import { HealthController } from './health.controller';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { FacilityModule } from './facility/facility.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([
-      { name: 'default', ttl: 60_000, limit: 120 },
+      {
+        name: 'default',
+        ttl: Number(process.env.THROTTLE_TTL_MS ?? 60_000),
+        limit: Number(process.env.THROTTLE_LIMIT ?? 1000),
+      },
       { name: 'auth', ttl: 60_000, limit: 15 },
       { name: 'share', ttl: 60_000, limit: 20 },
     ]),
@@ -30,6 +35,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
     SharesModule,
     UploadsModule,
     IntegrationsModule,
+    FacilityModule,
   ],
   controllers: [HealthController],
   providers: [

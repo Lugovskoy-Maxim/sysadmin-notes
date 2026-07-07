@@ -14,9 +14,32 @@ type VaultNavProps = {
   value: VaultSection;
   counts: Record<VaultSection, number>;
   onChange: (section: VaultSection) => void;
+  compact?: boolean;
 };
 
-export function VaultNav({ value, counts, onChange }: VaultNavProps) {
+export function VaultNav({ value, counts, onChange, compact }: VaultNavProps) {
+  if (compact) {
+    return (
+      <nav className="vault-nav vault-nav-compact" aria-label="Разделы хранилища">
+        {vaultSections.map((section) => {
+          const Icon = icons[section.id];
+          return (
+            <button
+              key={section.id}
+              type="button"
+              className={`sidebar-rail-btn vault-rail-btn vault-${section.id} ${value === section.id ? "active" : ""}`}
+              onClick={() => onChange(section.id)}
+              title={`${section.label} (${counts[section.id]})`}
+              aria-label={section.label}
+            >
+              <Icon size={18} />
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
+
   return (
     <nav className="vault-nav" aria-label="Разделы хранилища">
       {vaultSections.map((section) => {

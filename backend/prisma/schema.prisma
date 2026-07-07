@@ -69,20 +69,101 @@ model TelegramToken {
 }
 
 model Project {
-  id          String       @id @default(cuid())
-  name        String
-  description String?
-  color       String       @default("#087f72")
-  icon        String       @default("server")
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notes       Note[]
-  tasks       Task[]
-  timeEntries TimeEntry[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                  String              @id @default(cuid())
+  name                String
+  description         String?
+  color               String              @default("#087f72")
+  icon                String              @default("server")
+  inventoryColumnDefs String              @default("[]")
+  equipmentColumnDefs String              @default("[]")
+  userId              String
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes               Note[]
+  tasks               Task[]
+  timeEntries         TimeEntry[]
+  inventoryItems      InventoryItem[]
+  inventoryWriteOffs  InventoryWriteOff[]
+  officeRooms         OfficeRoom[]
+  networkMaps         NetworkMap[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
   @@index([userId])
+}
+
+model InventoryItem {
+  id        String              @id @default(cuid())
+  projectId String
+  project   Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  sku       String?
+  category  String?
+  unit      String?
+  location  String?
+  quantity  Int                 @default(0)
+  minStock  Int                 @default(0)
+  extra     String              @default("{}")
+  writeOffs InventoryWriteOff[]
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([projectId, updatedAt])
+}
+
+model InventoryWriteOff {
+  id        String        @id @default(cuid())
+  projectId String
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  quantity  Int
+  reason    String?
+  comment   String?
+  createdAt DateTime      @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([itemId])
+}
+
+model OfficeRoom {
+  id         String               @id @default(cuid())
+  projectId  String
+  project    Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name       String
+  building   String?
+  floor      String?
+  columnDefs String               @default("[]")
+  rows       OfficeEquipmentRow[]
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  @@index([projectId, updatedAt])
+}
+
+model OfficeEquipmentRow {
+  id        String     @id @default(cuid())
+  roomId    String
+  room      OfficeRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  label     String     @default("")
+  cells     String     @default("{}")
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([roomId, sortOrder])
+}
+
+model NetworkMap {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String   @default("Карта сети")
+  nodes     String   @default("[]")
+  edges     String   @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, updatedAt])
 }
 
 model Task {

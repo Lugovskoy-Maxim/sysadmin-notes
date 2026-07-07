@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, CircleUserRound, GitBranch, Globe, Keyboard, Link2, Mail, Moon, RefreshCw, Send, ShieldCheck, Sun, Unlink, X } from "lucide-react";
+import { Bot, CircleUserRound, GitBranch, Globe, Keyboard, Link2, Lock, Mail, Moon, RefreshCw, Send, ShieldCheck, Sun, Unlink, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { disableAppLock, loadLockSettings, saveLockSettings, setupAppLockPin } from "@/lib/app-lock";
 import { useToast } from "@/lib/toast";
 import type { Theme } from "@/lib/types";
 
@@ -53,6 +54,16 @@ export function SettingsModal({
   const [integrations, setIntegrations] = useState<Awaited<ReturnType<typeof api.integrations.status>> | null>(null);
   const [integrationLoading, setIntegrationLoading] = useState(true);
   const [emailSending, setEmailSending] = useState(false);
+  const [lockEnabled, setLockEnabled] = useState(false);
+  const [lockMinutes, setLockMinutes] = useState(5);
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+
+  useEffect(() => {
+    const settings = loadLockSettings();
+    setLockEnabled(settings.enabled);
+    setLockMinutes(settings.autoLockMinutes);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -156,7 +167,7 @@ export function SettingsModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card settings-modal" onClick={(e) => e.stopPropagation()}>
-        <header className="modal-header">
+        <header className="modal-header settings-modal-header">
           <div>
             <p className="overline">Настройки</p>
             <h3>Профиль и интерфейс</h3>
@@ -166,6 +177,7 @@ export function SettingsModal({
           </button>
         </header>
 
+        <div className="settings-modal-body">
         <div className="settings-profile">
           <strong>{userName}</strong>
           <span>{userEmail}</span>
@@ -322,6 +334,85 @@ export function SettingsModal({
           </p>
         </section>
 
+        <section className="settings-security app-lock-settings">
+          <div className="settings-section-head">
+            <div>
+              <span className="field-label">Блокировка приложения</span>
+              <p>Как в Telegram: PIN при сворачивании и по таймауту неактивности</p>
+            </div>
+            <Lock size={18} />
+          </div>
+
+          <label className="settings-toggle-row">
+            <span>Включить блокировку</span>
+            <input
+              type="checkbox"
+              checked={lockEnabled}
+              onChange={(e) => {
+                if (!e.target.checked) {
+                  saveLockSettings(disableAppLock());
+                  setLockEnabled(false);
+                  setNewPin("");
+                  setConfirmPin("");
+                  toast("Блокировка отключена", "success");
+                  return;
+                }
+                setLockEnabled(true);
+              }}
+            />
+          </label>
+
+          {lockEnabled ? (
+            <>
+              <label className="field-label">PIN-код (4–6 цифр)</label>
+              <input
+                className="text-field"
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="Новый PIN"
+              />
+              <input
+                className="text-field"
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="Повторите PIN"
+              />
+              <label className="field-label">Автоблокировка через (мин)</label>
+              <input
+                className="text-field"
+                type="number"
+                min={1}
+                max={120}
+                value={lockMinutes}
+                onChange={(e) => setLockMinutes(Math.max(1, Number(e.target.value) || 5))}
+              />
+              <button
+                className="ghost-button full"
+                type="button"
+                onClick={async () => {
+                  if (newPin.length < 4 || newPin !== confirmPin) {
+                    toast("PIN должен совпадать и содержать минимум 4 цифры", "error");
+                    return;
+                  }
+                  const settings = await setupAppLockPin(newPin);
+                  saveLockSettings({ ...settings, autoLockMinutes: lockMinutes });
+                  setNewPin("");
+                  setConfirmPin("");
+                  toast("PIN сохранён, блокировка включена", "success");
+                }}
+              >
+                Сохранить PIN
+              </button>
+            </>
+          ) : null}
+        </section>
+
         <label className="field-label">Тема</label>
         <div className="theme-cards">
           {themes.map((t) => {
@@ -353,6 +444,7 @@ export function SettingsModal({
           <Keyboard size={16} />
           Горячие клавиши
         </button>
+        </div>
       </div>
     </div>
   );

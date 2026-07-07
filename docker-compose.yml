@@ -1,3 +1,6 @@
+# Requires secrets from .env.docker (not loaded automatically).
+# Run: docker compose --env-file .env.docker up -d --build
+# Or:  ./scripts/docker-up.sh
 services:
   db:
     image: postgres:16-alpine

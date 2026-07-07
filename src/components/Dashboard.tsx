@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Cloud,
   Database,
@@ -32,6 +32,7 @@ import {
   Columns3,
   FolderOpen,
   ArrowLeft,
+  Lock,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAppStore } from "@/lib/store";
@@ -56,6 +57,13 @@ import { TaskEditor } from "./tasks/TaskEditor";
 import { TimeTracker } from "./tasks/TimeTracker";
 import { TaskInsights } from "./tasks/TaskInsights";
 import { ExportPasswordsModal } from "./ExportPasswordsModal";
+import { AppModeNav } from "./ui/AppModeNav";
+import { InventoryPanel } from "./facility/InventoryPanel";
+import { EquipmentPanel } from "./facility/EquipmentPanel";
+import { NetworkMapPanel } from "./facility/NetworkMapPanel";
+import { AppLockOverlay, useAppLock } from "./AppLockOverlay";
+import { PaneResizer } from "./PaneResizer";
+import { MobileMenuSheet, MobileModulesSheet } from "./MobileSheets";
 
 const iconMap = {
   server: Server,
@@ -113,6 +121,10 @@ export function Dashboard() {
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const clearAuth = useAppStore((s) => s.clearAuth);
   const toast = useToast((s) => s.push);
+  const shellRef = useRef<HTMLElement>(null);
+  const listRef = useRef<HTMLElement>(null);
+  const { locked, lock, unlock, touch } = useAppLock();
+  const isFacilityMode = appMode === "inventory" || appMode === "equipment" || appMode === "network";
 
   async function logout() {
     try {
@@ -145,6 +157,8 @@ export function Dashboard() {
   const [taskStatusFilter, setTaskStatusFilter] = useState<"all" | TaskStatus>("all");
   const [taskView, setTaskView] = useState<"board" | "overview">("board");
   const [mobilePane, setMobilePane] = useState<"list" | "detail">("list");
+  const [showMobileModules, setShowMobileModules] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const loadTasks = useCallback(async (projectId?: string | null) => {
     if (!token) return;
@@ -290,20 +304,33 @@ export function Dashboard() {
       if (mod && e.key === "n") {
         e.preventDefault();
         if (appMode === "tasks") void createTask();
-        else void createNote();
+        else if (!isFacilityMode) void createNote();
       }
       if (mod && e.key === "b") {
         e.preventDefault();
         toggleSidebar();
+      }
+      if (mod && e.key === "l") {
+        e.preventDefault();
+        lock();
       }
       if (mod && e.key === ",") {
         e.preventDefault();
         setShowSettings(true);
       }
     }
+    function onActivity() {
+      touch();
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [createNote, createTask, appMode, toggleSidebar]);
+    window.addEventListener("mousedown", onActivity);
+    window.addEventListener("touchstart", onActivity);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onActivity);
+      window.removeEventListener("touchstart", onActivity);
+    };
+  }, [createNote, createTask, appMode, toggleSidebar, isFacilityMode, lock, touch]);
 
   async function switchProject(id: string) {
     if (!token) return;
@@ -484,11 +511,31 @@ export function Dashboard() {
     );
   }
 
+  function switchAppMode(mode: typeof appMode) {
+    setAppMode(mode);
+    setPreviewNoteId(null);
+    setMobilePane("list");
+    if (mode === "tasks") void loadTasks();
+  }
+
   return (
     <main
-      className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${appMode === "tasks" ? "tasks-mode" : ""} ${notesView === "table" && appMode === "vault" ? "table-view" : ""} ${previewNote ? "has-quick-view" : ""} mobile-${mobilePane}`}
+      ref={shellRef}
+      className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${appMode === "tasks" ? "tasks-mode" : ""} ${isFacilityMode ? "facility-mode" : ""} ${notesView === "table" && appMode === "vault" ? "table-view" : ""} ${previewNote ? "has-quick-view" : ""} mobile-${mobilePane}`}
+      onMouseDown={touch}
     >
-      <aside className="sidebar" aria-label="Проекты">
+      <AppLockOverlay locked={locked} onUnlock={unlock} />
+      <div className="mobile-top-bar">
+        <button type="button" className="mobile-top-project" onClick={() => setShowMobileMenu(true)}>
+          <FolderOpen size={16} />
+          <span>{activeProject?.name ?? "Выберите проект"}</span>
+        </button>
+        <button type="button" className="mobile-top-modules" onClick={() => setShowMobileModules(true)} aria-label="Разделы">
+          <LayoutGrid size={18} />
+        </button>
+      </div>
+
+      <aside className={`sidebar ${sidebarCollapsed ? "is-collapsed" : ""}`} aria-label="Проекты">
         <div className="sidebar-top">
           <div className="app-title">
             <div className="brand-mark small">
@@ -506,30 +553,86 @@ export function Dashboard() {
           </button>
         </div>
 
-        {!sidebarCollapsed ? (
-          <>
-            <div className="app-mode-switch segmented-control full">
+        {sidebarCollapsed ? (
+          <div className="sidebar-rail">
+            <AppModeNav value={appMode} onChange={switchAppMode} compact />
+            {appMode === "vault" ? (
+              <>
+                <div className="sidebar-rail-divider" />
+                <VaultNav
+                  value={activeVault}
+                  counts={vaultCounts}
+                  compact
+                  onChange={(section) => {
+                    setActiveVault(section);
+                    setActiveCategory("Все");
+                    setActiveTag(null);
+                    setPreviewNoteId(null);
+                  }}
+                />
+              </>
+            ) : null}
+            <div className="sidebar-rail-divider" />
+            <nav className="sidebar-rail-projects" aria-label="Проекты">
+              {projects.map((project) => {
+                const Icon = iconMap[project.icon as keyof typeof iconMap] ?? Server;
+                return (
+                  <button
+                    key={project.id}
+                    type="button"
+                    className={`sidebar-rail-btn sidebar-rail-project ${project.id === activeProjectId ? "active" : ""}`}
+                    style={{ "--project-color": project.color } as React.CSSProperties}
+                    title={project.name}
+                    aria-label={project.name}
+                    onClick={() => void switchProject(project.id)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setShowProjectModal(project);
+                    }}
+                  >
+                    <span className="project-icon">
+                      <Icon size={14} />
+                    </span>
+                  </button>
+                );
+              })}
               <button
                 type="button"
-                className={appMode === "vault" ? "active" : ""}
-                onClick={() => setAppMode("vault")}
+                className="sidebar-rail-btn"
+                title="Новый проект"
+                aria-label="Новый проект"
+                onClick={() => setShowProjectModal("new")}
               >
-                <KeyRound size={14} />
-                Хранилище
+                <FolderPlus size={18} />
               </button>
+            </nav>
+            <div className="sidebar-rail-spacer" />
+            {(appMode === "vault" || appMode === "tasks") && (
               <button
                 type="button"
-                className={appMode === "tasks" ? "active" : ""}
-                onClick={() => {
-                  setAppMode("tasks");
-                  setPreviewNoteId(null);
-                  void loadTasks();
-                }}
+                className="sidebar-rail-btn sidebar-rail-create"
+                title={appMode === "tasks" ? "Новая задача" : "Новая запись"}
+                onClick={() => (appMode === "tasks" ? void createTask() : void createNote())}
               >
-                <CheckSquare size={14} />
-                Задачи
+                <Plus size={20} />
+              </button>
+            )}
+            <div className="sidebar-rail-footer">
+              <ThemeToggle theme={theme} onChange={setTheme} compact />
+              <button type="button" className="sidebar-rail-btn" onClick={lock} title="Заблокировать">
+                <Lock size={16} />
+              </button>
+              <button type="button" className="sidebar-rail-btn" onClick={() => setShowSettings(true)} title="Настройки">
+                <Settings size={16} />
+              </button>
+              <button type="button" className="sidebar-rail-btn" onClick={() => void logout()} title="Выйти">
+                <LogOut size={16} />
               </button>
             </div>
+          </div>
+        ) : (
+          <>
+            <AppModeNav value={appMode} onChange={switchAppMode} />
 
             {appMode === "vault" ? (
               <VaultNav
@@ -544,19 +647,21 @@ export function Dashboard() {
               />
             ) : null}
 
-            <button
-              className="primary-button"
-              onClick={() => (appMode === "tasks" ? void createTask() : void createNote())}
-            >
-              <Plus size={18} />
-              {appMode === "tasks"
-                ? "Новая задача"
-                : activeVault === "passwords"
-                  ? "Новый пароль"
-                  : activeVault === "instructions"
-                    ? "Новая инструкция"
-                    : "Новая заметка"}
-            </button>
+            {appMode === "vault" || appMode === "tasks" ? (
+              <button
+                className="primary-button"
+                onClick={() => (appMode === "tasks" ? void createTask() : void createNote())}
+              >
+                <Plus size={18} />
+                {appMode === "tasks"
+                  ? "Новая задача"
+                  : activeVault === "passwords"
+                    ? "Новый пароль"
+                    : activeVault === "instructions"
+                      ? "Новая инструкция"
+                      : "Новая заметка"}
+              </button>
+            ) : null}
 
             {appMode === "vault" && sectionTemplates.length ? (
               <div className="template-strip">
@@ -695,6 +800,9 @@ export function Dashboard() {
               </div>
               <div className="sidebar-footer-actions">
                 <ThemeToggle theme={theme} onChange={setTheme} />
+                <button className="ghost-button compact" onClick={lock} title="Заблокировать (⌘L)">
+                  <Lock size={14} />
+                </button>
                 <button className="ghost-button compact" onClick={() => setShowSettings(true)} title="Настройки">
                   <Settings size={14} />
                 </button>
@@ -704,13 +812,34 @@ export function Dashboard() {
               </div>
             </div>
           </>
-        ) : null}
+        )}
       </aside>
 
+      {isFacilityMode ? (
+        <section className="facility-full-panel mobile-content-pane" aria-label="Учёт и инфраструктура">
+          {activeProjectId && token ? (
+            appMode === "inventory" ? (
+              <InventoryPanel token={token} projectId={activeProjectId} />
+            ) : appMode === "equipment" ? (
+              <EquipmentPanel token={token} projectId={activeProjectId} />
+            ) : (
+              <NetworkMapPanel token={token} projectId={activeProjectId} />
+            )
+          ) : (
+            <div className="empty-editor">
+              <strong>Выберите проект</strong>
+              <span>Склад, оснащение и карта сети привязаны к проекту</span>
+            </div>
+          )}
+        </section>
+      ) : null}
+
       <section
-        className={`note-list ${appMode === "tasks" ? "tasks-list-mode" : notesView === "table" ? "table-mode" : ""}`}
+        ref={listRef}
+        className={`note-list ${appMode === "tasks" ? "tasks-list-mode" : notesView === "table" ? "table-mode" : ""} ${isFacilityMode ? "hidden-pane" : ""}`}
         aria-label={appMode === "tasks" ? "Задачи" : "Заметки"}
       >
+        {!isFacilityMode ? <PaneResizer listRef={listRef} /> : null}
         <div className={`search-box list-search ${globalSearch && appMode === "vault" ? "global-active" : ""}`}>
           <Search size={17} />
           <input
@@ -953,7 +1082,7 @@ export function Dashboard() {
         Назад
       </button>
 
-      {appMode === "tasks" ? (
+      {isFacilityMode ? null : appMode === "tasks" ? (
         selectedTask ? (
           <TaskEditor
             key={selectedTask.id}
@@ -989,45 +1118,78 @@ export function Dashboard() {
 
       <nav className="mobile-bottom-nav" aria-label="Основная навигация">
         <button
+          type="button"
           className={appMode === "vault" ? "active" : ""}
-          onClick={() => {
-            setAppMode("vault");
-            setMobilePane("list");
-          }}
+          onClick={() => switchAppMode("vault")}
         >
           <FolderOpen size={21} />
           <span>Хранилище</span>
         </button>
         <button
+          type="button"
           className={appMode === "tasks" ? "active" : ""}
-          onClick={() => {
-            setAppMode("tasks");
-            setMobilePane("list");
-          }}
+          onClick={() => switchAppMode("tasks")}
         >
           <CheckSquare size={21} />
           <span>Задачи</span>
         </button>
         <button
+          type="button"
           className="mobile-create"
-          aria-label={appMode === "tasks" ? "Новая задача" : "Новая заметка"}
+          aria-label={
+            appMode === "tasks"
+              ? "Новая задача"
+              : isFacilityMode
+                ? "Действие в разделе"
+                : "Новая заметка"
+          }
           onClick={() => {
-            if (appMode === "tasks") void createTask();
-            else void createNote();
-            setMobilePane("detail");
+            if (appMode === "tasks") {
+              void createTask();
+              setMobilePane("detail");
+            } else if (appMode === "vault") {
+              void createNote();
+              setMobilePane("detail");
+            } else {
+              setShowMobileModules(true);
+            }
           }}
         >
           <Plus size={25} />
         </button>
-        <button onClick={() => setShowCommandPalette(true)}>
-          <Search size={21} />
-          <span>Поиск</span>
+        <button
+          type="button"
+          className={isFacilityMode ? "active" : ""}
+          onClick={() => setShowMobileModules(true)}
+        >
+          <LayoutGrid size={21} />
+          <span>Разделы</span>
         </button>
-        <button onClick={() => setShowSettings(true)}>
+        <button type="button" onClick={() => setShowMobileMenu(true)}>
           <Settings size={21} />
-          <span>Настройки</span>
+          <span>Меню</span>
         </button>
       </nav>
+
+      {showMobileModules ? (
+        <MobileModulesSheet
+          appMode={appMode}
+          onSelect={switchAppMode}
+          onClose={() => setShowMobileModules(false)}
+        />
+      ) : null}
+
+      {showMobileMenu ? (
+        <MobileMenuSheet
+          projects={projects}
+          activeProjectId={activeProjectId}
+          onSelectProject={(id) => void switchProject(id)}
+          onNewProject={() => setShowProjectModal("new")}
+          onSearch={() => setShowCommandPalette(true)}
+          onSettings={() => setShowSettings(true)}
+          onClose={() => setShowMobileMenu(false)}
+        />
+      ) : null}
 
       {showProjectShare && activeProjectId && token ? (
         <ShareModal
