@@ -68,6 +68,7 @@ import { PaneResizer } from "./PaneResizer";
 import { MobileMenuSheet, MobileModulesSheet } from "./MobileSheets";
 import { ProjectMembersModal } from "./ProjectMembersModal";
 import { PricingModal } from "./PricingModal";
+import { AdminUsersModal } from "./AdminUsersModal";
 
 const iconMap = {
   server: Server,
@@ -152,6 +153,8 @@ export function Dashboard() {
   const [showProjectShare, setShowProjectShare] = useState(false);
   const [showProjectMembers, setShowProjectMembers] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
+  const [showAdminUsers, setShowAdminUsers] = useState(false);
+  const isAdmin = user?.role === "admin";
   const [showProjectModal, setShowProjectModal] = useState<Project | null | "new">(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -858,6 +861,12 @@ export function Dashboard() {
               Тарифы и подписка
               {!billing?.isPremium ? <span className="sidebar-pricing-cta">Pro</span> : null}
             </button>
+            {isAdmin ? (
+              <button type="button" className="sidebar-pricing-link admin-link" onClick={() => setShowAdminUsers(true)}>
+                <Shield size={14} />
+                Пользователи
+              </button>
+            ) : null}
 
             <div className="sidebar-footer">
               <div className="user-chip">
@@ -1299,6 +1308,10 @@ export function Dashboard() {
             void loadData();
           }}
         />
+      ) : null}
+
+      {showAdminUsers && token && user ? (
+        <AdminUsersModal token={token} currentUserId={user.id} onClose={() => setShowAdminUsers(false)} />
       ) : null}
 
       {showProjectModal ? (

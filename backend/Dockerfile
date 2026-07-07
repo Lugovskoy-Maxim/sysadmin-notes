@@ -20,4 +20,4 @@ RUN mkdir -p /app/uploads && chown -R node:node /app
 ENV UPLOAD_DIR="/app/uploads"
 USER node
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]

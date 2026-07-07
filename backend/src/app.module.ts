@@ -14,6 +14,7 @@ import { HealthController } from './health.controller';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { FacilityModule } from './facility/facility.module';
 import { BillingModule } from './billing/billing.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { BillingModule } from './billing/billing.module';
     IntegrationsModule,
     FacilityModule,
     BillingModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [

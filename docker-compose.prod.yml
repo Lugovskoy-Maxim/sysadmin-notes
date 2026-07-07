@@ -1,0 +1,101 @@
+# Production stack for lugodev.ru — web binds to localhost, nginx terminates TLS on the host.
+# Run: docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-sysadmin_notes}"
+      POSTGRES_USER: "${POSTGRES_USER:-sysadmin_notes}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sysadmin_notes} -d ${POSTGRES_DB:-sysadmin_notes}"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 10s
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: "production"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-sysadmin_notes}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sysadmin_notes}?schema=public&connection_limit=10&pool_timeout=10"
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      VAULT_ENCRYPTION_SECRET: "${VAULT_ENCRYPTION_SECRET:?Set VAULT_ENCRYPTION_SECRET}"
+      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-7d}"
+      PORT: 4000
+      FRONTEND_URL: "${APP_URL:-https://lugodev.ru}"
+      BACKEND_PUBLIC_URL: "${APP_URL:-https://lugodev.ru}"
+      COOKIE_SECURE: "${COOKIE_SECURE:-true}"
+      UPLOAD_DIR: "/app/uploads"
+      GITHUB_OAUTH_CLIENT_ID: "${GITHUB_OAUTH_CLIENT_ID:-}"
+      GITHUB_OAUTH_CLIENT_SECRET: "${GITHUB_OAUTH_CLIENT_SECRET:-}"
+      GOOGLE_OAUTH_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:-}"
+      GOOGLE_OAUTH_CLIENT_SECRET: "${GOOGLE_OAUTH_CLIENT_SECRET:-}"
+      YANDEX_OAUTH_CLIENT_ID: "${YANDEX_OAUTH_CLIENT_ID:-}"
+      YANDEX_OAUTH_CLIENT_SECRET: "${YANDEX_OAUTH_CLIENT_SECRET:-}"
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_SECURE: "${SMTP_SECURE:-false}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
+      SMTP_FROM: "${SMTP_FROM:-}"
+      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN:-}"
+      TELEGRAM_BOT_USERNAME: "${TELEGRAM_BOT_USERNAME:-}"
+      TELEGRAM_MODE: "${TELEGRAM_MODE:-polling}"
+      TELEGRAM_WEBHOOK_SECRET: "${TELEGRAM_WEBHOOK_SECRET:-}"
+    volumes:
+      - api-uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "/api"
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      API_INTERNAL_URL: "http://api:4000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    profiles: ["tools"]
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-sysadmin_notes}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sysadmin_notes}?schema=public"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["npx", "prisma", "migrate", "deploy"]
+    restart: "no"
+
+volumes:
+  postgres-data:
+  api-uploads:

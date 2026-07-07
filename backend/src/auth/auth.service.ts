@@ -1,14 +1,25 @@
-import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { AdminService } from '../admin/admin.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
+
+const publicUserSelect = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  status: true,
+  createdAt: true,
+} as const;
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
+    private admin: AdminService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -57,14 +68,16 @@ export class AuthService {
           },
         },
       },
-      select: { id: true, email: true, name: true, createdAt: true },
+      select: publicUserSelect,
     });
 
     await this.prisma.subscription.create({
       data: { userId: user.id, plan: 'free', status: 'active' },
     });
+    await this.admin.assignFirstAdminIfNeeded(user.id);
+    const fresh = await this.prisma.user.findUnique({ where: { id: user.id }, select: publicUserSelect });
 
-    return { user, token: this.createToken(user.id, user.email) };
+    return { user: fresh!, token: this.createToken(user.id, user.email) };
   }
 
   async login(dto: LoginDto) {
@@ -73,17 +86,26 @@ export class AuthService {
 
     const valid = await bcrypt.compare(dto.password, user.password);
     if (!valid) throw new UnauthorizedException('Неверный email или пароль');
+    if (user.status !== 'active') throw new ForbiddenException('Аккаунт заблокирован администратором');
 
     return {
-      user: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        status: user.status,
+        createdAt: user.createdAt,
+      },
       token: this.createToken(user.id, user.email),
     };
   }
 
   async me(userId: string) {
+    await this.admin.assertActiveUser(userId);
     return this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, createdAt: true },
+      select: publicUserSelect,
     });
   }
 
@@ -94,7 +116,7 @@ export class AuthService {
     return this.prisma.user.update({
       where: { id: userId },
       data,
-      select: { id: true, email: true, name: true, createdAt: true },
+      select: publicUserSelect,
     });
   }
 

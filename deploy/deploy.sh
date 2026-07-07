@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${APP_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+cd "$APP_DIR"
+
+if docker compose version >/dev/null 2>&1; then
+  DC=(docker compose)
+else
+  DC=(docker-compose)
+fi
+
+ENV_FILE="${ENV_FILE:-.env.production}"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+
+rm -rf "$APP_DIR/.npm-cache"
+docker image prune -f >/dev/null 2>&1 || true
+
+"${DC[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build --remove-orphans
+"${DC[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile tools run --rm migrate
+
+if [ -f deploy/nginx/lugodev.ru.conf ] && [ -d /etc/nginx/sites-available ]; then
+  if [ -f /etc/letsencrypt/live/lugodev.ru/fullchain.pem ]; then
+    install -m 644 deploy/nginx/lugodev.ru.conf /etc/nginx/sites-available/lugodev.ru
+  else
+    install -m 644 deploy/nginx/lugodev.ru.http.conf /etc/nginx/sites-available/lugodev.ru
+  fi
+  ln -sf /etc/nginx/sites-available/lugodev.ru /etc/nginx/sites-enabled/lugodev.ru
+  nginx -t && systemctl reload nginx
+fi
+
+echo "Deploy complete."

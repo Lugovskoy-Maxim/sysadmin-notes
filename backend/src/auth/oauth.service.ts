@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'crypto';
+import { AdminService } from '../admin/admin.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
 
@@ -29,6 +30,7 @@ export class OAuthService {
     private config: ConfigService,
     private prisma: PrismaService,
     private auth: AuthService,
+    private admin: AdminService,
   ) {}
 
   isProvider(value: string): value is OAuthProvider {
@@ -82,9 +84,11 @@ export class OAuthService {
     let user = linkUserId
       ? await this.prisma.user.findUnique({ where: { id: linkUserId } })
       : identity?.user ?? null;
+    let createdUser = false;
     if (!user) {
       user = await this.prisma.user.findUnique({ where: { email: profile.email } });
       if (!user) {
+        createdUser = true;
         user = await this.prisma.user.create({
           data: {
             email: profile.email,
@@ -134,8 +138,16 @@ export class OAuthService {
       });
     }
 
+    if (createdUser) await this.admin.assignFirstAdminIfNeeded(user.id);
+    if (user.status !== 'active') throw new ForbiddenException('Аккаунт заблокирован администратором');
+
+    const fresh = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, name: true, role: true, status: true, createdAt: true },
+    });
+
     return {
-      user: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
+      user: fresh!,
       token: this.auth.createToken(user.id, user.email),
     };
   }

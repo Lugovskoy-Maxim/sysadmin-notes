@@ -126,11 +126,26 @@ export type BillingStatus = {
   isPremium: boolean;
 };
 
+export type UserRole = "user" | "admin";
+export type UserStatus = "active" | "suspended";
+
 export type User = {
   id: string;
   email: string;
   name: string;
+  role?: UserRole;
+  status?: UserStatus;
   createdAt: string;
+};
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: string;
+  _count: { projects: number; projectMembers: number };
 };
 
 export type ProjectMember = {

@@ -332,6 +332,15 @@ export const api = {
     removeNetworkMap: (token: string, id: string) =>
       request<{ ok: boolean }>(`/facility/network-maps/${id}`, { method: "DELETE", token }),
   },
+  admin: {
+    listUsers: (token: string) =>
+      request<import("./types").AdminUser[]>("/admin/users", { token }),
+    updateUser: (
+      token: string,
+      id: string,
+      data: Partial<{ role: import("./types").UserRole; status: import("./types").UserStatus }>,
+    ) => request<import("./types").AdminUser>(`/admin/users/${id}`, { method: "PATCH", body: data, token }),
+  },
   billing: {
     plans: () =>
       request<{ plans: import("./plans").PlanCard[] }>("/billing/plans"),
