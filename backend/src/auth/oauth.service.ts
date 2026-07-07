@@ -89,6 +89,7 @@ export class OAuthService {
           data: {
             email: profile.email,
             name: profile.name,
+            subscription: { create: { plan: 'free', status: 'active' } },
             projects: {
               create: {
                 name: 'Мой проект',

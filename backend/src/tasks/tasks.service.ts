@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { BillingService } from '../billing/billing.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { CreateTaskDto, ReorderTasksDto, UpdateTaskDto } from './dto/task.dto';
@@ -10,6 +11,7 @@ export class TasksService {
   constructor(
     private prisma: PrismaService,
     private access: ProjectAccessService,
+    private billing: BillingService,
   ) {}
 
   private formatTask<
@@ -82,6 +84,7 @@ export class TasksService {
     });
 
     if (dto.assigneeId) {
+      await this.billing.assertProjectFeature(dto.projectId, 'assignees');
       await this.assertAssignee(dto.projectId, dto.assigneeId);
     }
 
@@ -112,6 +115,7 @@ export class TasksService {
     await this.access.assertAccess(userId, existing.projectId, 'editor');
 
     if (dto.assigneeId) {
+      await this.billing.assertProjectFeature(existing.projectId, 'assignees');
       await this.assertAssignee(existing.projectId, dto.assigneeId);
     }
 

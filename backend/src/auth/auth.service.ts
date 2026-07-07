@@ -60,6 +60,10 @@ export class AuthService {
       select: { id: true, email: true, name: true, createdAt: true },
     });
 
+    await this.prisma.subscription.create({
+      data: { userId: user.id, plan: 'free', status: 'active' },
+    });
+
     return { user, token: this.createToken(user.id, user.email) };
   }
 

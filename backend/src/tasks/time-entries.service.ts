@@ -1,15 +1,17 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProjectAccessService } from '../projects/project-access.service';
 import { CreateTimeEntryDto, StartTimerDto, UpdateTimeEntryDto } from './dto/time-entry.dto';
 
 @Injectable()
 export class TimeEntriesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private access: ProjectAccessService,
+  ) {}
 
   private async assertProject(userId: string, projectId: string) {
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException('Проект не найден');
-    if (project.userId !== userId) throw new ForbiddenException();
+    const { project } = await this.access.assertAccess(userId, projectId, 'editor');
     return project;
   }
 

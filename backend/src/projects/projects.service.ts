@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { safeJsonParse } from '../common/json.util';
+import { BillingService } from '../billing/billing.service';
 import { EncryptionService } from '../crypto/encryption.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
@@ -11,29 +12,51 @@ export class ProjectsService {
     private prisma: PrismaService,
     private crypto: EncryptionService,
     private access: ProjectAccessService,
+    private billing: BillingService,
   ) {}
 
-  findAll(userId: string) {
-    return this.prisma.project.findMany({
+  async findAll(userId: string) {
+    const projects = await this.prisma.project.findMany({
       where: this.access.projectIdsForUser(userId),
       orderBy: { updatedAt: 'desc' },
       include: {
         _count: { select: { notes: true, tasks: true, members: true } },
         user: { select: { id: true, name: true, email: true } },
+        members: { where: { userId }, select: { role: true } },
       },
     });
+
+    return Promise.all(
+      projects.map(async (project) => {
+        const role = project.userId === userId ? 'owner' : (project.members[0]?.role as 'editor' | 'viewer');
+        const ownerPlan = await this.billing.getProjectOwnerPlan(project.id);
+        const { members: _members, ...rest } = project;
+        return {
+          ...rest,
+          role,
+          capabilities: this.billing.projectCapabilities(ownerPlan, role ?? 'viewer'),
+        };
+      }),
+    );
   }
 
   async findOne(userId: string, id: string) {
-    const { project } = await this.access.assertAccess(userId, id, 'viewer');
+    const { project, role } = await this.access.assertAccess(userId, id, 'viewer');
     const counts = await this.prisma.project.findUnique({
       where: { id },
       include: { _count: { select: { notes: true, tasks: true, members: true } } },
     });
-    return { ...project, _count: counts?._count };
+    const ownerPlan = await this.billing.getProjectOwnerPlan(id);
+    return {
+      ...project,
+      _count: counts?._count,
+      role,
+      capabilities: this.billing.projectCapabilities(ownerPlan, role),
+    };
   }
 
-  create(userId: string, dto: CreateProjectDto) {
+  async create(userId: string, dto: CreateProjectDto) {
+    await this.billing.assertCanCreateProject(userId);
     return this.prisma.project.create({
       data: { ...dto, userId },
       include: { _count: { select: { notes: true } } },
@@ -74,7 +97,7 @@ export class ProjectsService {
         icon: project.icon,
       },
       notes: project.notes.map((note) => {
-        const decrypted = this.crypto.decryptNote(note, userId);
+        const decrypted = this.crypto.decryptNote(note, project.userId);
         return {
           title: note.title,
           type: note.type,
@@ -116,11 +139,13 @@ export class ProjectsService {
     archived?: boolean;
   }[]) {
     await this.access.assertAccess(userId, projectId, 'editor');
+    const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { userId: true } });
+    if (!project) throw new NotFoundException();
     const created = await this.prisma.$transaction(
       notes.map((note) => {
         const secrets = this.crypto.encryptNoteData(
           { password: note.password, totpSecret: note.totpSecret, sshKey: note.sshKey },
-          userId,
+          project.userId,
         );
         return this.prisma.note.create({
           data: {

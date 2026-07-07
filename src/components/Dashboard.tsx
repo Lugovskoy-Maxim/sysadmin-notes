@@ -33,12 +33,14 @@ import {
   FolderOpen,
   ArrowLeft,
   Lock,
+  Users,
+  Crown,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAppStore } from "@/lib/store";
 import { useToast } from "@/lib/toast";
 import { downloadFile, extractTextPreview, formatDate } from "@/lib/utils";
-import type { NoteType, Project, TaskStatus, VaultSection } from "@/lib/types";
+import type { AppMode, NoteType, Project, TaskStatus, VaultSection } from "@/lib/types";
 import { noteTemplates, projectColors, typeLabels, vaultSections } from "@/lib/types";
 import { VaultNav } from "./ui/VaultNav";
 import { ThemeToggle } from "./ui/ThemeToggle";
@@ -64,6 +66,7 @@ import { NetworkMapPanel } from "./facility/NetworkMapPanel";
 import { AppLockOverlay, useAppLock } from "./AppLockOverlay";
 import { PaneResizer } from "./PaneResizer";
 import { MobileMenuSheet, MobileModulesSheet } from "./MobileSheets";
+import { ProjectMembersModal } from "./ProjectMembersModal";
 
 const iconMap = {
   server: Server,
@@ -102,6 +105,8 @@ export function Dashboard() {
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
   const appMode = useAppStore((s) => s.appMode);
   const setAppMode = useAppStore((s) => s.setAppMode);
+  const billing = useAppStore((s) => s.billing);
+  const setBilling = useAppStore((s) => s.setBilling);
   const tasks = useAppStore((s) => s.tasks);
   const selectedTaskId = useAppStore((s) => s.selectedTaskId);
   const setTasks = useAppStore((s) => s.setTasks);
@@ -144,6 +149,7 @@ export function Dashboard() {
   const [globalResults, setGlobalResults] = useState<typeof notes>([]);
 
   const [showProjectShare, setShowProjectShare] = useState(false);
+  const [showProjectMembers, setShowProjectMembers] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState<Project | null | "new">(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -176,8 +182,12 @@ export function Dashboard() {
     if (!token) return;
     setLoading(true);
     try {
-      const projectList = await api.projects.list(token);
+      const [projectList, billingStatus] = await Promise.all([
+        api.projects.list(token),
+        api.billing.status(token).catch(() => null),
+      ]);
       setProjects(projectList);
+      if (billingStatus) setBilling(billingStatus);
       const projectId = projectList.some((project) => project.id === activeProjectId)
         ? activeProjectId
         : projectList[0]?.id;
@@ -193,7 +203,7 @@ export function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [token, activeProjectId, selectedNoteId, setProjects, setNotes, setAllNotes, setActiveProject, setSelectedNote, loadTasks]);
+  }, [token, activeProjectId, selectedNoteId, setProjects, setNotes, setAllNotes, setActiveProject, setSelectedNote, setBilling, loadTasks]);
 
   const activeVaultMeta = vaultSections.find((s) => s.id === activeVault)!;
 
@@ -231,6 +241,12 @@ export function Dashboard() {
   }, [query, globalSearch, token]);
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
+  const facilityEnabled = activeProject?.capabilities?.facility ?? billing?.limits.facilityModules ?? false;
+  const lockedFacilityModes: AppMode[] = facilityEnabled ? [] : ["inventory", "equipment", "network"];
+
+  useEffect(() => {
+    if (lockedFacilityModes.includes(appMode)) setAppMode("vault");
+  }, [lockedFacilityModes, appMode, setAppMode]);
 
   const createNote = useCallback(
     async (type?: NoteType, template?: (typeof noteTemplates)[number]) => {
@@ -512,10 +528,19 @@ export function Dashboard() {
   }
 
   function switchAppMode(mode: typeof appMode) {
+    if (lockedFacilityModes.includes(mode)) {
+      toast("Склад, оснащение и карта сети доступны на тарифах Pro и Team", "error");
+      return;
+    }
     setAppMode(mode);
     setPreviewNoteId(null);
     setMobilePane("list");
     if (mode === "tasks") void loadTasks();
+  }
+
+  function handleLockedMode(mode: AppMode) {
+    toast("Этот раздел доступен на тарифах Pro и Team", "error");
+    window.location.href = "/pricing";
   }
 
   return (
@@ -555,7 +580,13 @@ export function Dashboard() {
 
         {sidebarCollapsed ? (
           <div className="sidebar-rail">
-            <AppModeNav value={appMode} onChange={switchAppMode} compact />
+            <AppModeNav
+              value={appMode}
+              onChange={switchAppMode}
+              compact
+              lockedModes={lockedFacilityModes}
+              onLockedMode={handleLockedMode}
+            />
             {appMode === "vault" ? (
               <>
                 <div className="sidebar-rail-divider" />
@@ -632,7 +663,12 @@ export function Dashboard() {
           </div>
         ) : (
           <>
-            <AppModeNav value={appMode} onChange={switchAppMode} />
+            <AppModeNav
+              value={appMode}
+              onChange={switchAppMode}
+              lockedModes={lockedFacilityModes}
+              onLockedMode={handleLockedMode}
+            />
 
             {appMode === "vault" ? (
               <VaultNav
@@ -697,7 +733,12 @@ export function Dashboard() {
                       <span className="project-icon">
                         <Icon size={14} />
                       </span>
-                      <span className="project-name">{project.name}</span>
+                      <span className="project-name">
+                        {project.name}
+                        {project.role && project.role !== "owner" ? (
+                          <small className="project-shared-badge">общий</small>
+                        ) : null}
+                      </span>
                       <strong>{project._count?.notes ?? 0}</strong>
                     </button>
                   );
@@ -707,6 +748,19 @@ export function Dashboard() {
 
             {activeProject && appMode === "vault" ? (
               <div className="sidebar-actions">
+                {activeProject.role === "owner" ? (
+                  <button
+                    className="ghost-button compact"
+                    onClick={() =>
+                      billing?.limits.teamCollaboration
+                        ? setShowProjectMembers(true)
+                        : (window.location.href = "/pricing")
+                    }
+                  >
+                    <Users size={14} />
+                    {billing?.limits.teamCollaboration ? "Команда" : "Команда (Pro)"}
+                  </button>
+                ) : null}
                 <button className="ghost-button compact" onClick={() => setShowProjectShare(true)}>
                   <Share2 size={14} />
                   Поделиться
@@ -794,7 +848,17 @@ export function Dashboard() {
               <div className="user-chip">
                 <span className="user-chip-avatar">{(user?.name ?? user?.email ?? "?")[0]?.toUpperCase()}</span>
                 <div className="user-chip-text">
-                  <strong>{user?.name ?? "Пользователь"}</strong>
+                  <strong>
+                    {user?.name ?? "Пользователь"}
+                    {billing?.isPremium ? (
+                      <span className="plan-badge premium">
+                        <Crown size={10} />
+                        {billing.planName}
+                      </span>
+                    ) : (
+                      <a className="plan-badge free" href="/pricing">Free</a>
+                    )}
+                  </strong>
                   <span>{user?.email}</span>
                 </div>
               </div>
@@ -1200,6 +1264,17 @@ export function Dashboard() {
         />
       ) : null}
 
+      {showProjectMembers && activeProjectId && activeProject && token ? (
+        <ProjectMembersModal
+          token={token}
+          projectId={activeProjectId}
+          projectName={activeProject.name}
+          billing={billing}
+          onClose={() => setShowProjectMembers(false)}
+          onChanged={() => void loadData()}
+        />
+      ) : null}
+
       {showProjectModal ? (
         <ProjectModal
           project={showProjectModal === "new" ? null : showProjectModal}
@@ -1249,6 +1324,8 @@ export function Dashboard() {
             setShowSettings(false);
             setShowShareLinks(true);
           }}
+          billing={billing}
+          onBillingChange={setBilling}
           onClose={() => setShowSettings(false)}
         />
       ) : null}

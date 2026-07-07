@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { Lock, UserPlus, LogIn, Server, Shield, KeyRound, FileText, GitBranch, Globe, CircleUserRound } from "lucide-react";
 import { api } from "@/lib/api";
@@ -164,6 +165,10 @@ export function AuthForm() {
               </p>
             </>
           ) : null}
+
+          <p className="auth-pricing-link">
+            <Link href="/pricing">Тарифы Pro и Team</Link> — совместная работа, склад и карта сети
+          </p>
         </section>
       </section>
     </main>

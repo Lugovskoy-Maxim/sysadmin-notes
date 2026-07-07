@@ -31,6 +31,9 @@ export default function Home() {
       try {
         const user = await api.auth.me(storedToken);
         setAuth(storedToken, { ...user, createdAt: new Date().toISOString() });
+        void api.billing.status(storedToken)
+          .then((status) => useAppStore.getState().setBilling(status))
+          .catch(() => undefined);
         if (oauthSuccess) window.history.replaceState({}, "", window.location.pathname);
       } catch {
         clearAuth();

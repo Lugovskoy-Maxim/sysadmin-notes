@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, unlinkSync } from 'fs';
 import { basename, isAbsolute, relative, resolve } from 'path';
 import type { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProjectAccessService } from '../projects/project-access.service';
 
 const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
 
@@ -14,6 +15,7 @@ export class UploadsService {
 
   constructor(
     private prisma: PrismaService,
+    private access: ProjectAccessService,
     config: ConfigService,
   ) {
     this.uploadDir = config.get<string>('UPLOAD_DIR') ?? './uploads';
@@ -43,13 +45,23 @@ export class UploadsService {
     return full;
   }
 
+  private async assertNoteAccess(userId: string, noteId: string, minRole: 'viewer' | 'editor' = 'viewer') {
+    const note = await this.prisma.note.findUnique({
+      where: { id: noteId },
+      include: { project: true },
+    });
+    if (!note) throw new NotFoundException('Заметка не найдена');
+    await this.access.assertAccess(userId, note.projectId, minRole);
+    return note;
+  }
+
   async serveByAttachmentId(userId: string, attachmentId: string, res: Response) {
     const attachment = await this.prisma.attachment.findUnique({
       where: { id: attachmentId },
       include: { note: { include: { project: true } } },
     });
     if (!attachment) throw new NotFoundException('Вложение не найдено');
-    if (attachment.note.project.userId !== userId) throw new ForbiddenException();
+    await this.access.assertAccess(userId, attachment.note.projectId, 'viewer');
 
     const path = this.getSafeFilePath(attachment.path);
     if (!existsSync(path)) throw new NotFoundException('File not found');
@@ -65,12 +77,7 @@ export class UploadsService {
       throw new ForbiddenException('Разрешены только PNG, JPEG, WebP и GIF');
     }
 
-    const note = await this.prisma.note.findUnique({
-      where: { id: noteId },
-      include: { project: true },
-    });
-    if (!note) throw new NotFoundException('Заметка не найдена');
-    if (note.project.userId !== userId) throw new ForbiddenException();
+    await this.assertNoteAccess(userId, noteId, 'editor');
 
     return this.prisma.attachment.create({
       data: {
@@ -91,9 +98,8 @@ export class UploadsService {
       where: { path: basename(filename) },
       include: { note: { include: { project: true } } },
     });
-    if (!attachment || attachment.note.project.userId !== userId) {
-      throw new ForbiddenException();
-    }
+    if (!attachment) throw new ForbiddenException();
+    await this.access.assertAccess(userId, attachment.note.projectId, 'viewer');
 
     return res.sendFile(path);
   }
@@ -104,7 +110,7 @@ export class UploadsService {
       include: { note: { include: { project: true } } },
     });
     if (!attachment) throw new NotFoundException('Вложение не найдено');
-    if (attachment.note.project.userId !== userId) throw new ForbiddenException();
+    await this.access.assertAccess(userId, attachment.note.projectId, 'editor');
 
     await this.prisma.attachment.delete({ where: { id: attachmentId } });
 

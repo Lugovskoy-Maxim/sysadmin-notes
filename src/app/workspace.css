@@ -3848,3 +3848,385 @@ textarea {
     grid-column: 2;
   }
 }
+
+/* ── Pricing page ── */
+.pricing-page {
+  min-height: 100vh;
+  padding: 24px 20px 64px;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in srgb, var(--teal) 12%, transparent), transparent),
+    var(--background);
+}
+
+.pricing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1080px;
+  margin: 0 auto 32px;
+}
+
+.pricing-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.pricing-hero {
+  max-width: 720px;
+  margin: 0 auto 36px;
+  text-align: center;
+}
+
+.pricing-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--amber) 14%, var(--panel));
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pricing-hero h1 {
+  margin: 14px 0 10px;
+  font-size: clamp(28px, 4vw, 40px);
+}
+
+.pricing-hero p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.pricing-current {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 1080px;
+  margin: 0 auto 48px;
+}
+
+.pricing-card {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pricing-card.popular {
+  border-color: var(--teal);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--teal) 12%, transparent);
+}
+
+.pricing-card.current {
+  outline: 2px solid color-mix(in srgb, var(--teal) 35%, transparent);
+}
+
+.pricing-card-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 11px;
+  color: var(--teal);
+  font-weight: 600;
+}
+
+.pricing-card h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.pricing-card-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  min-height: 40px;
+}
+
+.pricing-price strong {
+  font-size: 30px;
+}
+
+.pricing-price span {
+  color: var(--muted);
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+.pricing-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.pricing-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.pricing-features svg {
+  color: var(--teal);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.pricing-demo-note {
+  text-align: center;
+}
+
+.pricing-compare {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.pricing-compare h2 {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.pricing-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.pricing-table th,
+.pricing-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.pricing-table th:not(:first-child),
+.pricing-table td:not(:first-child) {
+  text-align: center;
+}
+
+/* ── Billing / team ── */
+.settings-billing {
+  margin-top: 8px;
+}
+
+.billing-status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-soft);
+}
+
+.billing-status-card span,
+.billing-status-card small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.project-members-modal {
+  width: min(100%, 560px);
+}
+
+.member-invite-form {
+  margin-bottom: 16px;
+}
+
+.member-invite-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.member-invite-email {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.member-invite-email input {
+  flex: 1;
+}
+
+.member-list-section h3,
+.member-roles-help h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.member-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.member-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-soft);
+}
+
+.member-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.member-main span {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-role.owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--teal);
+}
+
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.member-roles-help p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.premium-upsell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--amber) 45%, var(--line));
+  background: color-mix(in srgb, var(--amber) 6%, var(--panel));
+  margin-bottom: 16px;
+}
+
+.premium-upsell p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.plan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: middle;
+  text-decoration: none;
+}
+
+.plan-badge.premium {
+  background: color-mix(in srgb, var(--amber) 16%, var(--panel));
+  color: var(--amber);
+}
+
+.plan-badge.free {
+  background: var(--panel-soft);
+  color: var(--muted);
+}
+
+.plan-badge.free:hover {
+  color: var(--teal);
+}
+
+.project-shared-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--sky, #0ea5e9) 12%, var(--panel));
+  color: var(--sky, #0ea5e9);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.app-mode-nav button.locked {
+  opacity: 0.72;
+}
+
+.mode-premium-icon {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  color: var(--amber);
+}
+
+.app-mode-nav button {
+  position: relative;
+}
+
+.auth-pricing-link {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.auth-pricing-link a {
+  color: var(--teal);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .member-invite-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, CircleUserRound, GitBranch, Globe, Keyboard, Link2, Lock, Mail, Moon, RefreshCw, Send, ShieldCheck, Sun, Unlink, X } from "lucide-react";
+import { Bot, CircleUserRound, Crown, GitBranch, Globe, Keyboard, Link2, Lock, Mail, Moon, RefreshCw, Send, ShieldCheck, Sun, Unlink, X } from "lucide-react";
+import type { BillingStatus } from "@/lib/types";
 import { api } from "@/lib/api";
 import { disableAppLock, loadLockSettings, saveLockSettings, setupAppLockPin } from "@/lib/app-lock";
 import { useToast } from "@/lib/toast";
@@ -16,6 +17,8 @@ type SettingsModalProps = {
   onProfileUpdate: (name: string) => void;
   onShowShortcuts: () => void;
   onShowShares: () => void;
+  billing?: BillingStatus | null;
+  onBillingChange?: (billing: BillingStatus) => void;
   onClose: () => void;
 };
 
@@ -41,6 +44,8 @@ export function SettingsModal({
   onProfileUpdate,
   onShowShortcuts,
   onShowShares,
+  billing,
+  onBillingChange,
   onClose,
 }: SettingsModalProps) {
   const toast = useToast((s) => s.push);
@@ -198,6 +203,55 @@ export function SettingsModal({
         <button className="ghost-button full" onClick={() => void saveProfile()} disabled={saving}>
           {saving ? "Сохранение..." : "Сохранить профиль"}
         </button>
+
+        <section className="settings-billing">
+          <div className="settings-section-head">
+            <div>
+              <span className="field-label">Подписка</span>
+              <p>Тариф и лимиты вашего аккаунта</p>
+            </div>
+            <Crown size={18} />
+          </div>
+          {billing ? (
+            <>
+              <div className="billing-status-card">
+                <strong>{billing.planName}</strong>
+                <span>
+                  Проекты: {billing.usage.ownedProjects}/{billing.limits.maxOwnedProjects}
+                  {billing.limits.teamCollaboration
+                    ? ` · Участники: до ${billing.limits.maxMembersPerProject}`
+                    : ""}
+                </span>
+                {billing.currentPeriodEnd ? (
+                  <small>Активна до {new Date(billing.currentPeriodEnd).toLocaleDateString("ru-RU")}</small>
+                ) : null}
+              </div>
+              <a className="ghost-button full" href="/pricing">
+                {billing.isPremium ? "Сменить тариф" : "Перейти на Pro / Team"}
+              </a>
+              {billing.isPremium ? (
+                <button
+                  className="ghost-button full danger"
+                  type="button"
+                  onClick={async () => {
+                    if (!window.confirm("Отменить подписку?")) return;
+                    try {
+                      const status = await api.billing.cancel(token);
+                      onBillingChange?.(status);
+                      toast("Подписка отменена", "success");
+                    } catch (error) {
+                      toast(error instanceof Error ? error.message : "Не удалось отменить", "error");
+                    }
+                  }}
+                >
+                  Отменить подписку
+                </button>
+              ) : null}
+            </>
+          ) : (
+            <p className="fine-print">Загрузка тарифа…</p>
+          )}
+        </section>
 
         <section className="settings-security">
           <div className="settings-section-head">

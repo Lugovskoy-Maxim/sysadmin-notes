@@ -119,6 +119,20 @@ export const api = {
       request<import("./types").Project>(`/projects/${id}`, { method: "PATCH", body: data, token }),
     remove: (token: string, id: string) =>
       request<{ ok: boolean }>(`/projects/${id}`, { method: "DELETE", token }),
+    get: (token: string, id: string) =>
+      request<import("./types").Project>(`/projects/${id}`, { token }),
+    listMembers: (token: string, projectId: string) =>
+      request<import("./types").ProjectMember[]>(`/projects/${projectId}/members`, { token }),
+    inviteMember: (token: string, projectId: string, data: { email: string; role?: "editor" | "viewer" }) =>
+      request<import("./types").ProjectMember>(`/projects/${projectId}/members`, { method: "POST", body: data, token }),
+    updateMember: (token: string, projectId: string, memberUserId: string, role: "editor" | "viewer") =>
+      request<import("./types").ProjectMember>(`/projects/${projectId}/members/${memberUserId}`, {
+        method: "PATCH",
+        body: { role },
+        token,
+      }),
+    removeMember: (token: string, projectId: string, memberUserId: string) =>
+      request<{ ok: boolean }>(`/projects/${projectId}/members/${memberUserId}`, { method: "DELETE", token }),
     export: (token: string, id: string) =>
       request<{ version: number; exportedAt: string; project: Record<string, string>; notes: Partial<import("./types").Note>[] }>(
         `/projects/${id}/export`,
@@ -317,5 +331,15 @@ export const api = {
       request<import("./facility-types").NetworkMap>(`/facility/network-maps/${id}`, { method: "PATCH", body: data, token }),
     removeNetworkMap: (token: string, id: string) =>
       request<{ ok: boolean }>(`/facility/network-maps/${id}`, { method: "DELETE", token }),
+  },
+  billing: {
+    plans: () =>
+      request<{ plans: import("./plans").PlanCard[] }>("/billing/plans"),
+    status: (token: string) =>
+      request<import("./types").BillingStatus>("/billing/status", { token }),
+    subscribe: (token: string, plan: "pro" | "team") =>
+      request<import("./types").BillingStatus>("/billing/subscribe", { method: "POST", body: { plan }, token }),
+    cancel: (token: string) =>
+      request<import("./types").BillingStatus>("/billing/cancel", { method: "POST", token }),
   },
 };

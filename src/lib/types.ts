@@ -15,6 +15,10 @@ export type Task = {
   estimatedMinutes?: number | null;
   sortOrder: number;
   projectId: string;
+  assigneeId?: string | null;
+  assignee?: { id: string; name: string; email: string } | null;
+  createdById?: string | null;
+  createdBy?: { id: string; name: string; email: string } | null;
   trackedSeconds?: number;
   timeEntries?: TimeEntry[];
   createdAt: string;
@@ -89,10 +93,51 @@ export const vaultSections: {
 ];
 export type Theme = "light" | "dark";
 
+export type PlanId = "free" | "pro" | "team";
+
+export type ProjectRole = "owner" | "editor" | "viewer";
+
+export type ProjectCapabilities = {
+  facility: boolean;
+  assignees: boolean;
+  canManageMembers: boolean;
+  canEdit: boolean;
+  isPremiumProject: boolean;
+};
+
+export type BillingStatus = {
+  plan: PlanId;
+  planName: string;
+  status: string;
+  currentPeriodEnd: string | null;
+  limits: {
+    maxOwnedProjects: number;
+    maxMembersPerProject: number;
+    facilityModules: boolean;
+    taskAssignees: boolean;
+    teamCollaboration: boolean;
+    shareLinks: boolean;
+  };
+  usage: {
+    ownedProjects: number;
+    sharedProjects: number;
+    busiestProjectMembers: number;
+  };
+  isPremium: boolean;
+};
+
 export type User = {
   id: string;
   email: string;
   name: string;
+  createdAt: string;
+};
+
+export type ProjectMember = {
+  id: string;
+  userId: string;
+  role: ProjectRole;
+  user: { id: string; name: string; email: string };
   createdAt: string;
 };
 
@@ -104,7 +149,10 @@ export type Project = {
   icon: string;
   createdAt: string;
   updatedAt: string;
-  _count?: { notes: number };
+  role?: ProjectRole;
+  capabilities?: ProjectCapabilities;
+  user?: { id: string; name: string; email: string };
+  _count?: { notes: number; tasks?: number; members?: number };
 };
 
 export type Attachment = {

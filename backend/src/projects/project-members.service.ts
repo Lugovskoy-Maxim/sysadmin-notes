@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BillingService } from '../billing/billing.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from './project-access.service';
 
@@ -7,6 +8,7 @@ export class ProjectMembersService {
   constructor(
     private prisma: PrismaService,
     private access: ProjectAccessService,
+    private billing: BillingService,
   ) {}
 
   async list(userId: string, projectId: string) {
@@ -31,6 +33,7 @@ export class ProjectMembersService {
 
   async invite(userId: string, projectId: string, email: string, role: 'editor' | 'viewer' = 'editor') {
     await this.access.assertOwner(userId, projectId);
+    await this.billing.assertCanInviteMember(userId, projectId);
     const normalized = email.trim().toLowerCase();
     if (!normalized) throw new BadRequestException('Укажите email');
 

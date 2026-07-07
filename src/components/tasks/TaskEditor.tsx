@@ -5,7 +5,7 @@ import { Calendar, Clock, Play, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAppStore } from "@/lib/store";
 import { useToast } from "@/lib/toast";
-import type { Task, TaskPriority, TaskStatus, TimeEntry } from "@/lib/types";
+import type { ProjectMember, Task, TaskPriority, TaskStatus, TimeEntry } from "@/lib/types";
 import { taskPriorityLabels, taskStatusLabels } from "@/lib/types";
 import { formatDuration } from "@/lib/task-utils";
 import { formatDate } from "@/lib/utils";
@@ -18,6 +18,7 @@ type TaskEditorProps = {
 
 export function TaskEditor({ task, onDeleted, onUpdated }: TaskEditorProps) {
   const token = useAppStore((s) => s.token);
+  const projects = useAppStore((s) => s.projects);
   const activeTimer = useAppStore((s) => s.activeTimer);
   const setActiveTimer = useAppStore((s) => s.setActiveTimer);
   const toast = useToast((s) => s.push);
@@ -28,7 +29,11 @@ export function TaskEditor({ task, onDeleted, onUpdated }: TaskEditorProps) {
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
   const [dueDate, setDueDate] = useState(task.dueDate?.slice(0, 10) ?? "");
   const [estimatedMinutes, setEstimatedMinutes] = useState(task.estimatedMinutes?.toString() ?? "");
+  const [assigneeId, setAssigneeId] = useState(task.assigneeId ?? "");
+  const [members, setMembers] = useState<ProjectMember[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(task.timeEntries ?? []);
+  const project = projects.find((item) => item.id === task.projectId);
+  const canAssign = project?.capabilities?.assignees ?? false;
   const [saving, setSaving] = useState(false);
   const skipInitialSave = useRef(true);
 
@@ -39,8 +44,14 @@ export function TaskEditor({ task, onDeleted, onUpdated }: TaskEditorProps) {
     setPriority(task.priority);
     setDueDate(task.dueDate?.slice(0, 10) ?? "");
     setEstimatedMinutes(task.estimatedMinutes?.toString() ?? "");
+    setAssigneeId(task.assigneeId ?? "");
     setTimeEntries(task.timeEntries ?? []);
   }, [task.id, task.updatedAt]);
+
+  useEffect(() => {
+    if (!token || !canAssign) return;
+    void api.projects.listMembers(token, task.projectId).then(setMembers).catch(() => setMembers([]));
+  }, [token, task.projectId, canAssign]);
 
   useEffect(() => {
     if (!token) return;
@@ -60,6 +71,7 @@ export function TaskEditor({ task, onDeleted, onUpdated }: TaskEditorProps) {
         priority,
         dueDate: dueDate || null,
         estimatedMinutes: estimatedMinutes ? Number(estimatedMinutes) : null,
+        assigneeId: canAssign ? assigneeId || null : undefined,
       });
       onUpdated(updated);
     } catch (e) {
@@ -67,7 +79,7 @@ export function TaskEditor({ task, onDeleted, onUpdated }: TaskEditorProps) {
     } finally {
       setSaving(false);
     }
-  }, [token, task.id, task.title, title, description, status, priority, dueDate, estimatedMinutes, onUpdated, toast]);
+  }, [token, task.id, task.title, title, description, status, priority, dueDate, estimatedMinutes, assigneeId, canAssign, onUpdated, toast]);
 
   useEffect(() => {
     if (skipInitialSave.current) {
@@ -76,7 +88,7 @@ export function TaskEditor({ task, onDeleted, onUpdated }: TaskEditorProps) {
     }
     const timer = setTimeout(() => void save(), 600);
     return () => clearTimeout(timer);
-  }, [title, description, status, priority, dueDate, estimatedMinutes, save]);
+  }, [title, description, status, priority, dueDate, estimatedMinutes, assigneeId, save]);
 
   useEffect(() => {
     skipInitialSave.current = true;
@@ -187,6 +199,20 @@ export function TaskEditor({ task, onDeleted, onUpdated }: TaskEditorProps) {
             placeholder="60"
           />
         </label>
+
+        {canAssign ? (
+          <label className="form-control">
+            <span>Исполнитель</span>
+            <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
+              <option value="">Не назначен</option>
+              {members.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.user.name} ({member.role === "owner" ? "владелец" : member.role})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <label className="form-control wide">
           <span>Описание</span>

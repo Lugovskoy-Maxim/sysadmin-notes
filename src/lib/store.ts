@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AppMode, Note, Project, Task, Theme, TimeEntry, User } from "./types";
+import type { AppMode, BillingStatus, Note, Project, Task, Theme, TimeEntry, User } from "./types";
 import { applyTheme, normalizeTheme } from "./utils";
 
 export type NotesView = "cards" | "table";
@@ -24,8 +24,10 @@ type AppState = {
   selectedTaskId: string | null;
   activeTimer: TimeEntry | null;
   appMode: AppMode;
+  billing: BillingStatus | null;
   setAuth: (token: string, user: User) => void;
   setUser: (user: User) => void;
+  setBilling: (billing: BillingStatus | null) => void;
   clearAuth: () => void;
   setProjects: (projects: Project[]) => void;
   setNotes: (notes: Note[]) => void;
@@ -69,6 +71,7 @@ export const useAppStore = create<AppState>()(
       selectedTaskId: null,
       activeTimer: null,
       appMode: "vault",
+      billing: null,
       setAuth: (token, user) =>
         set((state) => {
           const accountChanged = Boolean(state.user?.id && state.user.id !== user.id);
@@ -86,15 +89,18 @@ export const useAppStore = create<AppState>()(
                   selectedTaskId: null,
                   activeTimer: null,
                   appMode: "vault" as const,
+                  billing: null,
                 }
               : {}),
           };
         }),
       setUser: (user) => set({ user }),
+      setBilling: (billing) => set({ billing }),
       clearAuth: () =>
         set({
           token: null,
           user: null,
+          billing: null,
           projects: [],
           notes: [],
           allNotes: [],

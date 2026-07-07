@@ -1,6 +1,8 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BillingService } from '../billing/billing.service';
 import { safeJsonParse } from '../common/json.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProjectAccessService, ProjectRole } from '../projects/project-access.service';
 import {
   CreateEquipmentRowDto,
   CreateInventoryItemDto,
@@ -16,12 +18,15 @@ import {
 
 @Injectable()
 export class FacilityService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private access: ProjectAccessService,
+    private billing: BillingService,
+  ) {}
 
-  private async assertProject(userId: string, projectId: string) {
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException('Проект не найден');
-    if (project.userId !== userId) throw new ForbiddenException();
+  private async assertProject(userId: string, projectId: string, minRole: ProjectRole = 'viewer') {
+    await this.billing.assertProjectFeature(projectId, 'facility');
+    const { project } = await this.access.assertAccess(userId, projectId, minRole);
     return project;
   }
 
@@ -97,7 +102,7 @@ export class FacilityService {
   }
 
   async listInventory(userId: string, projectId: string) {
-    await this.assertProject(userId, projectId);
+    await this.assertProject(userId, projectId, 'viewer');
     const items = await this.prisma.inventoryItem.findMany({
       where: { projectId },
       orderBy: [{ category: 'asc' }, { name: 'asc' }],
@@ -106,7 +111,7 @@ export class FacilityService {
   }
 
   async createInventoryItem(userId: string, dto: CreateInventoryItemDto) {
-    await this.assertProject(userId, dto.projectId);
+    await this.assertProject(userId, dto.projectId, 'editor');
     const item = await this.prisma.inventoryItem.create({
       data: {
         projectId: dto.projectId,
@@ -126,7 +131,7 @@ export class FacilityService {
   async updateInventoryItem(userId: string, id: string, dto: UpdateInventoryItemDto) {
     const item = await this.prisma.inventoryItem.findUnique({ where: { id } });
     if (!item) throw new NotFoundException('Позиция не найдена');
-    await this.assertProject(userId, item.projectId);
+    await this.assertProject(userId, item.projectId, 'editor');
     const updated = await this.prisma.inventoryItem.update({
       where: { id },
       data: {
@@ -140,13 +145,13 @@ export class FacilityService {
   async removeInventoryItem(userId: string, id: string) {
     const item = await this.prisma.inventoryItem.findUnique({ where: { id } });
     if (!item) throw new NotFoundException('Позиция не найдена');
-    await this.assertProject(userId, item.projectId);
+    await this.assertProject(userId, item.projectId, 'editor');
     await this.prisma.inventoryItem.delete({ where: { id } });
     return { ok: true };
   }
 
   async listWriteOffs(userId: string, projectId: string) {
-    await this.assertProject(userId, projectId);
+    await this.assertProject(userId, projectId, 'viewer');
     const entries = await this.prisma.inventoryWriteOff.findMany({
       where: { projectId },
       include: { item: { select: { name: true, sku: true, unit: true } } },
@@ -156,7 +161,7 @@ export class FacilityService {
   }
 
   async createWriteOff(userId: string, dto: CreateWriteOffDto) {
-    await this.assertProject(userId, dto.projectId);
+    await this.assertProject(userId, dto.projectId, 'editor');
     const item = await this.prisma.inventoryItem.findUnique({ where: { id: dto.itemId } });
     if (!item || item.projectId !== dto.projectId) throw new NotFoundException('Позиция не найдена');
     if (item.quantity < dto.quantity) {
@@ -184,7 +189,7 @@ export class FacilityService {
   }
 
   async listRooms(userId: string, projectId: string) {
-    await this.assertProject(userId, projectId);
+    await this.assertProject(userId, projectId, 'viewer');
     const rooms = await this.prisma.officeRoom.findMany({
       where: { projectId },
       include: { rows: { orderBy: { sortOrder: 'asc' } } },
@@ -194,7 +199,7 @@ export class FacilityService {
   }
 
   async createRoom(userId: string, dto: CreateOfficeRoomDto) {
-    await this.assertProject(userId, dto.projectId);
+    await this.assertProject(userId, dto.projectId, 'editor');
     const room = await this.prisma.officeRoom.create({
       data: {
         projectId: dto.projectId,
@@ -210,7 +215,7 @@ export class FacilityService {
   async updateRoom(userId: string, id: string, dto: UpdateOfficeRoomDto) {
     const room = await this.prisma.officeRoom.findUnique({ where: { id } });
     if (!room) throw new NotFoundException('Кабинет не найден');
-    await this.assertProject(userId, room.projectId);
+    await this.assertProject(userId, room.projectId, 'editor');
     const updated = await this.prisma.officeRoom.update({
       where: { id },
       data: {
@@ -227,7 +232,7 @@ export class FacilityService {
   async removeRoom(userId: string, id: string) {
     const room = await this.prisma.officeRoom.findUnique({ where: { id } });
     if (!room) throw new NotFoundException('Кабинет не найден');
-    await this.assertProject(userId, room.projectId);
+    await this.assertProject(userId, room.projectId, 'editor');
     await this.prisma.officeRoom.delete({ where: { id } });
     return { ok: true };
   }
@@ -235,7 +240,7 @@ export class FacilityService {
   async createEquipmentRow(userId: string, dto: CreateEquipmentRowDto) {
     const room = await this.prisma.officeRoom.findUnique({ where: { id: dto.roomId } });
     if (!room) throw new NotFoundException('Кабинет не найден');
-    await this.assertProject(userId, room.projectId);
+    await this.assertProject(userId, room.projectId, 'editor');
     const maxOrder = await this.prisma.officeEquipmentRow.aggregate({
       where: { roomId: dto.roomId },
       _max: { sortOrder: true },
@@ -262,7 +267,7 @@ export class FacilityService {
       include: { room: { select: { projectId: true } } },
     });
     if (!row) throw new NotFoundException('Строка не найдена');
-    await this.assertProject(userId, row.room.projectId);
+    await this.assertProject(userId, row.room.projectId, 'editor');
     const updated = await this.prisma.officeEquipmentRow.update({
       where: { id },
       data: {
@@ -285,13 +290,13 @@ export class FacilityService {
       include: { room: { select: { projectId: true } } },
     });
     if (!row) throw new NotFoundException('Строка не найдена');
-    await this.assertProject(userId, row.room.projectId);
+    await this.assertProject(userId, row.room.projectId, 'editor');
     await this.prisma.officeEquipmentRow.delete({ where: { id } });
     return { ok: true };
   }
 
   async getColumnDefs(userId: string, projectId: string) {
-    const project = await this.assertProject(userId, projectId);
+    const project = await this.assertProject(userId, projectId, 'editor');
     return {
       inventoryColumnDefs: safeJsonParse(project.inventoryColumnDefs, []),
       equipmentColumnDefs: safeJsonParse(project.equipmentColumnDefs, []),
@@ -299,7 +304,7 @@ export class FacilityService {
   }
 
   async updateColumnDefs(userId: string, projectId: string, dto: UpdateColumnDefsDto) {
-    await this.assertProject(userId, projectId);
+    await this.assertProject(userId, projectId, 'viewer');
     const updated = await this.prisma.project.update({
       where: { id: projectId },
       data: {
@@ -318,7 +323,7 @@ export class FacilityService {
   }
 
   async listNetworkMaps(userId: string, projectId: string) {
-    await this.assertProject(userId, projectId);
+    await this.assertProject(userId, projectId, 'viewer');
     const maps = await this.prisma.networkMap.findMany({
       where: { projectId },
       orderBy: { updatedAt: 'desc' },
@@ -329,12 +334,12 @@ export class FacilityService {
   async getNetworkMap(userId: string, id: string) {
     const map = await this.prisma.networkMap.findUnique({ where: { id } });
     if (!map) throw new NotFoundException('Карта не найдена');
-    await this.assertProject(userId, map.projectId);
+    await this.assertProject(userId, map.projectId, 'editor');
     return this.formatNetworkMap(map);
   }
 
   async createNetworkMap(userId: string, dto: CreateNetworkMapDto) {
-    await this.assertProject(userId, dto.projectId);
+    await this.assertProject(userId, dto.projectId, 'editor');
     const map = await this.prisma.networkMap.create({
       data: {
         projectId: dto.projectId,
@@ -347,7 +352,7 @@ export class FacilityService {
   async updateNetworkMap(userId: string, id: string, dto: UpdateNetworkMapDto) {
     const map = await this.prisma.networkMap.findUnique({ where: { id } });
     if (!map) throw new NotFoundException('Карта не найдена');
-    await this.assertProject(userId, map.projectId);
+    await this.assertProject(userId, map.projectId, 'editor');
     const updated = await this.prisma.networkMap.update({
       where: { id },
       data: {
@@ -362,7 +367,7 @@ export class FacilityService {
   async removeNetworkMap(userId: string, id: string) {
     const map = await this.prisma.networkMap.findUnique({ where: { id } });
     if (!map) throw new NotFoundException('Карта не найдена');
-    await this.assertProject(userId, map.projectId);
+    await this.assertProject(userId, map.projectId, 'editor');
     await this.prisma.networkMap.delete({ where: { id } });
     return { ok: true };
   }
