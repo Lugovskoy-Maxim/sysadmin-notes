@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
+import { ProjectsModule } from '../projects/projects.module';
 import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
 import { TimeEntriesController } from './time-entries.controller';
 import { TimeEntriesService } from './time-entries.service';
 
 @Module({
+  imports: [ProjectsModule],
   controllers: [TasksController, TimeEntriesController],
   providers: [TasksService, TimeEntriesService],
   exports: [TasksService, TimeEntriesService],

@@ -57,21 +57,44 @@ export type OfficeEquipmentRow = {
   updatedAt: string;
 };
 
+export type NetworkNodeType =
+  | "server"
+  | "switch"
+  | "router"
+  | "pc"
+  | "printer"
+  | "ap"
+  | "cloud"
+  | "firewall"
+  | "nas"
+  | "ups"
+  | "phone"
+  | "other";
+
+export type NetworkNodeStatus = "online" | "offline" | "unknown";
+
 export type NetworkNode = {
   id: string;
   label: string;
-  type: "server" | "switch" | "router" | "pc" | "printer" | "ap" | "cloud" | "other";
+  type: NetworkNodeType;
   ip?: string;
+  hostname?: string;
+  mac?: string;
+  vlan?: string;
+  status?: NetworkNodeStatus;
   x: number;
   y: number;
   notes?: string;
 };
+
+export type NetworkEdgeKind = "ethernet" | "wireless" | "fiber" | "vpn";
 
 export type NetworkEdge = {
   id: string;
   from: string;
   to: string;
   label?: string;
+  kind?: NetworkEdgeKind;
 };
 
 export type NetworkMap = {
@@ -105,13 +128,30 @@ export const defaultEquipmentColumns: TableColumnDef[] = [
   { id: "notes", label: "Комментарий", type: "text", visible: true, width: 200 },
 ];
 
-export const networkNodeTypes: { id: NetworkNode["type"]; label: string }[] = [
+export const networkNodeTypes: { id: NetworkNodeType; label: string }[] = [
   { id: "server", label: "Сервер" },
   { id: "switch", label: "Коммутатор" },
   { id: "router", label: "Маршрутизатор" },
+  { id: "firewall", label: "Файрвол" },
   { id: "pc", label: "ПК" },
   { id: "printer", label: "Принтер" },
   { id: "ap", label: "Точка доступа" },
+  { id: "nas", label: "NAS" },
+  { id: "ups", label: "ИБП" },
+  { id: "phone", label: "Телефония" },
   { id: "cloud", label: "Облако" },
   { id: "other", label: "Другое" },
+];
+
+export const networkEdgeKinds: { id: NetworkEdgeKind; label: string }[] = [
+  { id: "ethernet", label: "Ethernet" },
+  { id: "wireless", label: "Wi‑Fi" },
+  { id: "fiber", label: "Оптика" },
+  { id: "vpn", label: "VPN" },
+];
+
+export const networkNodeStatuses: { id: NetworkNodeStatus; label: string }[] = [
+  { id: "online", label: "В сети" },
+  { id: "offline", label: "Не в сети" },
+  { id: "unknown", label: "Неизвестно" },
 ];

@@ -8,18 +8,21 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(cuid())
-  email       String       @unique
-  name        String
-  password    String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  projects    Project[]
-  shares      ShareLink[]
-  timeEntries TimeEntry[]
-  identities  AuthIdentity[]
-  telegramLink TelegramLink?
-  telegramTokens TelegramToken[]
+  id               String          @id @default(cuid())
+  email            String          @unique
+  name             String
+  password         String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  projects         Project[]
+  projectMembers   ProjectMember[]
+  assignedTasks    Task[]          @relation("TaskAssignee")
+  createdTasks     Task[]          @relation("TaskCreator")
+  shares           ShareLink[]
+  timeEntries      TimeEntry[]
+  identities       AuthIdentity[]
+  telegramLink     TelegramLink?
+  telegramTokens   TelegramToken[]
 }
 
 model AuthIdentity {
@@ -85,9 +88,23 @@ model Project {
   inventoryWriteOffs  InventoryWriteOff[]
   officeRooms         OfficeRoom[]
   networkMaps         NetworkMap[]
+  members             ProjectMember[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
+  @@index([userId])
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("editor")
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
   @@index([userId])
 }
 
@@ -175,6 +192,10 @@ model Task {
   dueDate          DateTime?
   estimatedMinutes Int?
   sortOrder        Int          @default(0)
+  assigneeId       String?
+  assignee         User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdById      String?
+  createdBy        User?        @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
   projectId        String
   project          Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   timeEntries      TimeEntry[]
@@ -183,6 +204,7 @@ model Task {
 
   @@index([projectId])
   @@index([projectId, status])
+  @@index([assigneeId])
 }
 
 model TimeEntry {

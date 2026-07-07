@@ -1,32 +1,36 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { safeJsonParse } from '../common/json.util';
 import { EncryptionService } from '../crypto/encryption.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
+import { ProjectAccessService } from './project-access.service';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     private prisma: PrismaService,
     private crypto: EncryptionService,
+    private access: ProjectAccessService,
   ) {}
 
   findAll(userId: string) {
     return this.prisma.project.findMany({
-      where: { userId },
+      where: this.access.projectIdsForUser(userId),
       orderBy: { updatedAt: 'desc' },
-      include: { _count: { select: { notes: true } } },
+      include: {
+        _count: { select: { notes: true, tasks: true, members: true } },
+        user: { select: { id: true, name: true, email: true } },
+      },
     });
   }
 
   async findOne(userId: string, id: string) {
-    const project = await this.prisma.project.findUnique({
+    const { project } = await this.access.assertAccess(userId, id, 'viewer');
+    const counts = await this.prisma.project.findUnique({
       where: { id },
-      include: { _count: { select: { notes: true } } },
+      include: { _count: { select: { notes: true, tasks: true, members: true } } },
     });
-    if (!project) throw new NotFoundException('Проект не найден');
-    if (project.userId !== userId) throw new ForbiddenException();
-    return project;
+    return { ...project, _count: counts?._count };
   }
 
   create(userId: string, dto: CreateProjectDto) {
@@ -37,7 +41,7 @@ export class ProjectsService {
   }
 
   async update(userId: string, id: string, dto: UpdateProjectDto) {
-    await this.findOne(userId, id);
+    await this.access.assertAccess(userId, id, 'editor');
     return this.prisma.project.update({
       where: { id },
       data: dto,
@@ -46,13 +50,13 @@ export class ProjectsService {
   }
 
   async remove(userId: string, id: string) {
-    await this.findOne(userId, id);
+    await this.access.assertOwner(userId, id);
     await this.prisma.project.delete({ where: { id } });
     return { ok: true };
   }
 
   async exportProject(userId: string, id: string) {
-    await this.findOne(userId, id);
+    await this.access.assertAccess(userId, id, 'editor');
     const project = await this.prisma.project.findUnique({
       where: { id },
       include: {
@@ -111,7 +115,7 @@ export class ProjectsService {
     pinned?: boolean;
     archived?: boolean;
   }[]) {
-    await this.findOne(userId, projectId);
+    await this.access.assertAccess(userId, projectId, 'editor');
     const created = await this.prisma.$transaction(
       notes.map((note) => {
         const secrets = this.crypto.encryptNoteData(

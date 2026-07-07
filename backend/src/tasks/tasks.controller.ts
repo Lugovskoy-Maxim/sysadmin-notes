@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateTaskDto, UpdateTaskDto } from './dto/task.dto';
+import { CreateTaskDto, ReorderTasksDto, UpdateTaskDto } from './dto/task.dto';
 import { TasksService } from './tasks.service';
 
 @UseGuards(JwtAuthGuard)
@@ -11,6 +11,11 @@ export class TasksController {
   @Get()
   findByProject(@Req() req: { user: { id: string } }, @Query('projectId') projectId: string) {
     return this.tasks.findByProject(req.user.id, projectId);
+  }
+
+  @Post('reorder')
+  reorder(@Req() req: { user: { id: string } }, @Body() dto: ReorderTasksDto) {
+    return this.tasks.reorder(req.user.id, dto);
   }
 
   @Get(':id')

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Lock, Shield } from "lucide-react";
 import { loadLockSettings, verifyPin } from "@/lib/app-lock";
 
@@ -9,10 +9,20 @@ type AppLockOverlayProps = {
   onUnlock: () => void;
 };
 
+function appendDigit(current: string, digit: string) {
+  return current.length < 6 ? current + digit : current;
+}
+
 export function AppLockOverlay({ locked, onUnlock }: AppLockOverlayProps) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const inputRef = useRef<HTMLInputElement>(null);
+  const pinRef = useRef("");
+
+  useEffect(() => {
+    pinRef.current = pin;
+  }, [pin]);
 
   useEffect(() => {
     if (!locked) {
@@ -21,26 +31,66 @@ export function AppLockOverlay({ locked, onUnlock }: AppLockOverlayProps) {
       return;
     }
     const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 0);
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(focusTimer);
+    };
   }, [locked]);
 
-  const tryUnlock = useCallback(async () => {
-    const settings = loadLockSettings();
-    const ok = await verifyPin(pin, settings.pinHash);
-    if (ok) {
+  const tryUnlock = useCallback(
+    async (value?: string) => {
+      const attempt = value ?? pinRef.current;
+      if (attempt.length < 4) return;
+      const settings = loadLockSettings();
+      const ok = await verifyPin(attempt, settings.pinHash);
+      if (ok) {
+        setPin("");
+        setError(false);
+        onUnlock();
+        return;
+      }
+      setError(true);
       setPin("");
-      setError(false);
-      onUnlock();
-      return;
-    }
-    setError(true);
-    setPin("");
-  }, [pin, onUnlock]);
+    },
+    [onUnlock],
+  );
+
+  const applyPin = useCallback((next: string) => {
+    const sanitized = next.replace(/\D/g, "").slice(0, 6);
+    setPin(sanitized);
+    setError(false);
+    if (sanitized.length === 4 || sanitized.length === 6) void tryUnlock(sanitized);
+  }, [tryUnlock]);
 
   useEffect(() => {
-    if (!locked || pin.length < 4) return;
-    void tryUnlock();
-  }, [locked, pin, tryUnlock]);
+    if (!locked) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+      if (/^\d$/.test(event.key)) {
+        event.preventDefault();
+        applyPin(appendDigit(pinRef.current, event.key));
+        return;
+      }
+
+      if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        setPin((current) => current.slice(0, -1));
+        setError(false);
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void tryUnlock();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [locked, applyPin, tryUnlock]);
 
   if (!locked) return null;
 
@@ -50,7 +100,7 @@ export function AppLockOverlay({ locked, onUnlock }: AppLockOverlayProps) {
   return (
     <div className="app-lock-overlay" role="dialog" aria-modal="true" aria-label="Экран блокировки">
       <div className="app-lock-backdrop" />
-      <div className="app-lock-card">
+      <div className="app-lock-card" onClick={() => inputRef.current?.focus()}>
         <div className="app-lock-clock">
           <strong>{time}</strong>
           <span>{date}</span>
@@ -62,7 +112,31 @@ export function AppLockOverlay({ locked, onUnlock }: AppLockOverlayProps) {
             <p>Введите PIN-код для разблокировки</p>
           </div>
         </div>
-        <div className={`app-lock-pin ${error ? "error" : ""}`}>
+        <label className="app-lock-input-wrap">
+          <span className="sr-only">PIN-код</span>
+          <input
+            ref={inputRef}
+            className="app-lock-input"
+            type="password"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            maxLength={6}
+            value={pin}
+            placeholder="••••"
+            aria-label="PIN-код"
+            onChange={(event) => applyPin(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void tryUnlock();
+              }
+            }}
+          />
+        </label>
+        <div className={`app-lock-pin ${error ? "error" : ""}`} aria-hidden>
           {Array.from({ length: 6 }).map((_, index) => (
             <span key={index} className={pin.length > index ? "filled" : ""} />
           ))}
@@ -78,9 +152,11 @@ export function AppLockOverlay({ locked, onUnlock }: AppLockOverlayProps) {
                   if (key === "⌫") {
                     setPin((current) => current.slice(0, -1));
                     setError(false);
+                    inputRef.current?.focus();
                     return;
                   }
-                  if (pin.length < 6) setPin((current) => current + key);
+                  applyPin(appendDigit(pin, key));
+                  inputRef.current?.focus();
                 }}
               >
                 {key}
@@ -92,7 +168,7 @@ export function AppLockOverlay({ locked, onUnlock }: AppLockOverlayProps) {
         </div>
         <p className="app-lock-hint">
           <Lock size={14} />
-          Как в Telegram: приложение блокируется при сворачивании и по таймауту
+          Вводите цифры с клавиатуры · Backspace — стереть · Enter — разблокировать
         </p>
       </div>
     </div>
@@ -101,16 +177,27 @@ export function AppLockOverlay({ locked, onUnlock }: AppLockOverlayProps) {
 
 export function useAppLock() {
   const [locked, setLocked] = useState(false);
-  const [lastActive, setLastActive] = useState(Date.now());
+  const lastActiveRef = useRef(Date.now());
+  const unlockedAtRef = useRef(0);
 
-  const touch = useCallback(() => setLastActive(Date.now()), []);
+  const touch = useCallback(() => {
+    lastActiveRef.current = Date.now();
+  }, []);
 
   const lock = useCallback(() => {
     const settings = loadLockSettings();
-    if (settings.enabled && settings.pinHash) setLocked(true);
+    if (!settings.enabled || !settings.pinHash) return;
+    // Ignore focus churn right after unlock (overlay unmount, refocus).
+    if (Date.now() - unlockedAtRef.current < 800) return;
+    setLocked(true);
   }, []);
 
-  const unlock = useCallback(() => setLocked(false), []);
+  const unlock = useCallback(() => {
+    const now = Date.now();
+    unlockedAtRef.current = now;
+    lastActiveRef.current = now;
+    setLocked(false);
+  }, []);
 
   useEffect(() => {
     const settings = loadLockSettings();
@@ -124,18 +211,16 @@ export function useAppLock() {
       const current = loadLockSettings();
       if (!current.enabled || !current.pinHash) return;
       const timeout = current.autoLockMinutes * 60 * 1000;
-      if (Date.now() - lastActive >= timeout) lock();
+      if (Date.now() - lastActiveRef.current >= timeout) lock();
     }, 5000);
 
     document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("blur", lock);
 
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("blur", lock);
       window.clearInterval(idleTimer);
     };
-  }, [lastActive, lock]);
+  }, [lock]);
 
   return { locked, lock, unlock, touch };
 }

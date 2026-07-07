@@ -338,7 +338,7 @@ export function SettingsModal({
           <div className="settings-section-head">
             <div>
               <span className="field-label">Блокировка приложения</span>
-              <p>Как в Telegram: PIN при сворачивании и по таймауту неактивности</p>
+              <p>PIN при сворачивании вкладки и по таймауту неактивности</p>
             </div>
             <Lock size={18} />
           </div>
