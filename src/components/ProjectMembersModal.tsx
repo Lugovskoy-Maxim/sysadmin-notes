@@ -118,7 +118,7 @@ export function ProjectMembersModal({
                 <strong>Совместная работа — Pro и Team</strong>
                 <p>Приглашайте коллег по email, назначайте роли editor и viewer.</p>
               </div>
-              <a className="primary-button compact" href="/pricing">
+              <a className="primary-button compact" href="/pricing" target="_blank" rel="noreferrer">
                 Тарифы
               </a>
             </div>

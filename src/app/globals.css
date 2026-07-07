@@ -376,16 +376,63 @@ button {
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px 12px;
+  gap: 10px;
+  padding: 16px 12px 12px;
   border-right: 1px solid var(--line);
   background: var(--sidebar);
   width: var(--shell-sidebar);
   min-width: var(--shell-sidebar);
   max-width: var(--shell-sidebar);
+  overflow: hidden;
+  transition: width 180ms ease, min-width 180ms ease, max-width 180ms ease, padding 180ms ease;
+}
+
+.sidebar-top {
+  flex-shrink: 0;
+}
+
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  transition: width 180ms ease, min-width 180ms ease, max-width 180ms ease, padding 180ms ease;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 2px;
+  margin-right: -2px;
+  scrollbar-width: thin;
+}
+
+.sidebar-pricing-link {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--amber) 35%, var(--line));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--amber) 8%, var(--panel));
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sidebar-pricing-link:hover {
+  background: color-mix(in srgb, var(--amber) 14%, var(--panel));
+}
+
+.sidebar-pricing-cta {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--amber) 20%, var(--panel));
+  color: var(--amber);
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .sidebar.is-collapsed {
@@ -1674,12 +1721,22 @@ button {
 }
 
 .sidebar-actions {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .sidebar-actions .ghost-button {
-  flex: 1;
+  min-width: 0;
+  padding-inline: 8px;
+  font-size: 11px;
+}
+
+.sidebar-actions .ghost-button span,
+.sidebar-actions .ghost-button {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar.is-collapsed .sidebar-top {
@@ -3869,11 +3926,18 @@ textarea.ui-input {
 
 /* ── Sidebar footer ── */
 .sidebar-footer {
-  margin-top: auto;
-  padding-top: 12px;
+  flex-shrink: 0;
+  margin-top: 0;
+  padding-top: 10px;
   border-top: 1px solid var(--line);
   display: grid;
   gap: 10px;
+}
+
+.project-list {
+  max-height: 160px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .user-chip {

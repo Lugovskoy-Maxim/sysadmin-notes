@@ -67,6 +67,7 @@ import { AppLockOverlay, useAppLock } from "./AppLockOverlay";
 import { PaneResizer } from "./PaneResizer";
 import { MobileMenuSheet, MobileModulesSheet } from "./MobileSheets";
 import { ProjectMembersModal } from "./ProjectMembersModal";
+import { PricingModal } from "./PricingModal";
 
 const iconMap = {
   server: Server,
@@ -150,6 +151,7 @@ export function Dashboard() {
 
   const [showProjectShare, setShowProjectShare] = useState(false);
   const [showProjectMembers, setShowProjectMembers] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState<Project | null | "new">(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -540,7 +542,11 @@ export function Dashboard() {
 
   function handleLockedMode(mode: AppMode) {
     toast("Этот раздел доступен на тарифах Pro и Team", "error");
-    window.location.href = "/pricing";
+    setShowPricing(true);
+  }
+
+  function openPricing() {
+    setShowPricing(true);
   }
 
   return (
@@ -653,6 +659,9 @@ export function Dashboard() {
               <button type="button" className="sidebar-rail-btn" onClick={lock} title="Заблокировать">
                 <Lock size={16} />
               </button>
+              <button type="button" className="sidebar-rail-btn" onClick={openPricing} title="Тарифы">
+                <Crown size={16} />
+              </button>
               <button type="button" className="sidebar-rail-btn" onClick={() => setShowSettings(true)} title="Настройки">
                 <Settings size={16} />
               </button>
@@ -663,6 +672,7 @@ export function Dashboard() {
           </div>
         ) : (
           <>
+            <div className="sidebar-scroll">
             <AppModeNav
               value={appMode}
               onChange={switchAppMode}
@@ -752,9 +762,7 @@ export function Dashboard() {
                   <button
                     className="ghost-button compact"
                     onClick={() =>
-                      billing?.limits.teamCollaboration
-                        ? setShowProjectMembers(true)
-                        : (window.location.href = "/pricing")
+                      billing?.limits.teamCollaboration ? setShowProjectMembers(true) : openPricing()
                     }
                   >
                     <Users size={14} />
@@ -843,6 +851,13 @@ export function Dashboard() {
                 ))}
               </div>
             ) : null}
+            </div>
+
+            <button type="button" className="sidebar-pricing-link" onClick={openPricing}>
+              <Crown size={14} />
+              Тарифы и подписка
+              {!billing?.isPremium ? <span className="sidebar-pricing-cta">Pro</span> : null}
+            </button>
 
             <div className="sidebar-footer">
               <div className="user-chip">
@@ -856,7 +871,7 @@ export function Dashboard() {
                         {billing.planName}
                       </span>
                     ) : (
-                      <a className="plan-badge free" href="/pricing">Free</a>
+                      <button type="button" className="plan-badge free" onClick={openPricing}>Free</button>
                     )}
                   </strong>
                   <span>{user?.email}</span>
@@ -1275,6 +1290,17 @@ export function Dashboard() {
         />
       ) : null}
 
+      {showPricing && token ? (
+        <PricingModal
+          token={token}
+          onClose={() => setShowPricing(false)}
+          onSubscribed={(status) => {
+            setBilling(status);
+            void loadData();
+          }}
+        />
+      ) : null}
+
       {showProjectModal ? (
         <ProjectModal
           project={showProjectModal === "new" ? null : showProjectModal}
@@ -1326,6 +1352,7 @@ export function Dashboard() {
           }}
           billing={billing}
           onBillingChange={setBilling}
+          onOpenPricing={() => setShowPricing(true)}
           onClose={() => setShowSettings(false)}
         />
       ) : null}

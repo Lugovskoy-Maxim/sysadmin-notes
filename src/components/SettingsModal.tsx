@@ -19,6 +19,7 @@ type SettingsModalProps = {
   onShowShares: () => void;
   billing?: BillingStatus | null;
   onBillingChange?: (billing: BillingStatus) => void;
+  onOpenPricing?: () => void;
   onClose: () => void;
 };
 
@@ -46,6 +47,7 @@ export function SettingsModal({
   onShowShares,
   billing,
   onBillingChange,
+  onOpenPricing,
   onClose,
 }: SettingsModalProps) {
   const toast = useToast((s) => s.push);
@@ -226,9 +228,16 @@ export function SettingsModal({
                   <small>Активна до {new Date(billing.currentPeriodEnd).toLocaleDateString("ru-RU")}</small>
                 ) : null}
               </div>
-              <a className="ghost-button full" href="/pricing">
+              <button
+                type="button"
+                className="ghost-button full"
+                onClick={() => {
+                  onClose();
+                  onOpenPricing?.();
+                }}
+              >
                 {billing.isPremium ? "Сменить тариф" : "Перейти на Pro / Team"}
-              </a>
+              </button>
               {billing.isPremium ? (
                 <button
                   className="ghost-button full danger"
