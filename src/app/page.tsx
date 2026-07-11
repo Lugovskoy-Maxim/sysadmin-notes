@@ -14,8 +14,9 @@ export default function Home() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("mode") === "tasks") {
-      useAppStore.getState().setAppMode("tasks");
+    const mode = params.get("mode");
+    if (mode === "tasks" || mode === "calendar") {
+      useAppStore.getState().setAppMode(mode);
     }
   }, []);
 

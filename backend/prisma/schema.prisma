@@ -103,6 +103,7 @@ model Project {
   officeRooms         OfficeRoom[]
   networkMaps         NetworkMap[]
   contacts            Contact[]
+  calendarEvents      CalendarEvent[]
   members             ProjectMember[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
@@ -199,6 +200,24 @@ model Contact {
   updatedAt  DateTime @updatedAt
 
   @@index([projectId, updatedAt])
+}
+
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  dueDate     DateTime
+  amount      Float?
+  currency    String?  @default("RUB")
+  recurrence  String   @default("none")
+  category    String   @default("payment")
+  remindDays  String   @default("[1,7]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId, dueDate])
 }
 
 model NetworkMap {

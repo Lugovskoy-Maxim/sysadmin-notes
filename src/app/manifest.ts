@@ -55,6 +55,12 @@ export default function manifest(): MetadataRoute.Manifest {
         url: "/?mode=tasks",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
+      {
+        name: "Календарь оплат",
+        short_name: "Календарь",
+        url: "/?mode=calendar",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+      },
     ],
   };
 }

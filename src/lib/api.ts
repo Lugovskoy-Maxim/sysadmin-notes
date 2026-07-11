@@ -346,6 +346,38 @@ export const api = {
     removeContact: (token: string, id: string) =>
       request<{ ok: boolean }>(`/facility/contacts/${id}`, { method: "DELETE", token }),
   },
+  calendar: {
+    listEvents: (token: string, projectId: string) =>
+      request<import("./calendar-types").CalendarEvent[]>(`/calendar/events?projectId=${projectId}`, { token }),
+    listOccurrences: (token: string, projectId: string, from: string, to: string) =>
+      request<import("./calendar-types").CalendarOccurrence[]>(
+        `/calendar/events?projectId=${projectId}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+        { token },
+      ),
+    upcoming: (token: string, projectId: string, days = 30) =>
+      request<import("./calendar-types").CalendarOccurrence[]>(
+        `/calendar/upcoming?projectId=${projectId}&days=${days}`,
+        { token },
+      ),
+    createEvent: (
+      token: string,
+      data: {
+        projectId: string;
+        title: string;
+        dueDate: string;
+        description?: string;
+        amount?: number | null;
+        currency?: string;
+        recurrence?: import("./calendar-types").CalendarRecurrence;
+        category?: import("./calendar-types").CalendarCategory;
+        remindDays?: number[];
+      },
+    ) => request<import("./calendar-types").CalendarEvent>("/calendar/events", { method: "POST", body: data, token }),
+    updateEvent: (token: string, id: string, data: Partial<import("./calendar-types").CalendarEvent>) =>
+      request<import("./calendar-types").CalendarEvent>(`/calendar/events/${id}`, { method: "PATCH", body: data, token }),
+    removeEvent: (token: string, id: string) =>
+      request<{ ok: boolean }>(`/calendar/events/${id}`, { method: "DELETE", token }),
+  },
   admin: {
     listUsers: (token: string) =>
       request<import("./types").AdminUser[]>("/admin/users", { token }),

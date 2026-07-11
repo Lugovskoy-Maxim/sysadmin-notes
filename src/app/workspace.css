@@ -564,11 +564,8 @@ body.shell-resizing {
   min-height: 50px;
 }
 
-.rich-toolbar {
-  position: sticky;
-  top: 70px;
-  z-index: 6;
-  background: var(--panel);
+.rich-editor .ProseMirror {
+  min-height: 260px;
 }
 
 .tasks-board-container {
@@ -1750,7 +1747,7 @@ body.shell-resizing {
     left: 0;
     min-height: calc(68px + env(safe-area-inset-bottom));
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     align-items: start;
     padding: 7px max(6px, env(safe-area-inset-left)) env(safe-area-inset-bottom) max(6px, env(safe-area-inset-right));
     border-top: 1px solid var(--line);
@@ -3028,6 +3025,16 @@ textarea {
   flex-direction: column;
   gap: 16px;
   min-height: 100%;
+}
+
+.calendar-panel {
+  gap: 0;
+  min-height: 0;
+}
+
+.calendar-panel .calendar-layout {
+  flex: 1;
+  min-height: 0;
 }
 
 .facility-loading {

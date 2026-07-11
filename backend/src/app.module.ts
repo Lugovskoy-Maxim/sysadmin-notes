@@ -15,6 +15,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { FacilityModule } from './facility/facility.module';
 import { BillingModule } from './billing/billing.module';
 import { AdminModule } from './admin/admin.module';
+import { CalendarModule } from './calendar/calendar.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AdminModule } from './admin/admin.module';
     FacilityModule,
     BillingModule,
     AdminModule,
+    CalendarModule,
   ],
   controllers: [HealthController],
   providers: [

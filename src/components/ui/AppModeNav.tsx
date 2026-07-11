@@ -2,6 +2,7 @@
 
 import {
   Building2,
+  CalendarDays,
   CheckSquare,
   Crown,
   KeyRound,
@@ -14,6 +15,7 @@ import type { AppMode } from "@/lib/types";
 const modes: { id: AppMode; label: string; icon: typeof KeyRound; premium?: boolean }[] = [
   { id: "vault", label: "Хранилище", icon: KeyRound },
   { id: "tasks", label: "Задачи", icon: CheckSquare },
+  { id: "calendar", label: "Календарь", icon: CalendarDays },
   { id: "inventory", label: "Склад", icon: Package, premium: true },
   { id: "equipment", label: "Оснащение", icon: Building2, premium: true },
   { id: "network", label: "Сеть", icon: Map, premium: true },

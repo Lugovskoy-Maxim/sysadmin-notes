@@ -1302,18 +1302,32 @@ select option:focus {
   overflow: hidden;
 }
 
+.rich-editor {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--panel);
+}
+
 .rich-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   padding: 8px;
   border-bottom: 1px solid var(--line);
   background: var(--panel-soft);
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  flex-shrink: 0;
 }
 
 .rich-toolbar button {
   width: 32px;
   height: 32px;
+  flex: 0 0 32px;
   display: grid;
   place-items: center;
   border: 1px solid transparent;
@@ -1667,10 +1681,15 @@ select option:focus {
   }
 
   .editor-header,
-  .attachments-header,
-  .body-toolbar {
+  .attachments-header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .body-toolbar {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
   }
 
   .list-header {
@@ -5065,11 +5084,13 @@ textarea.ui-input {
   min-height: 50px;
 }
 
-.rich-toolbar {
-  position: sticky;
-  top: 70px;
-  z-index: 6;
-  background: var(--panel);
+.body-toolbar {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.body-toolbar .segmented-control {
+  flex-shrink: 0;
 }
 
 .tasks-board-container {

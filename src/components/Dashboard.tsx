@@ -35,6 +35,7 @@ import {
   Lock,
   Users,
   Crown,
+  CalendarDays,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAppStore } from "@/lib/store";
@@ -64,6 +65,9 @@ import { InventoryPanel } from "./facility/InventoryPanel";
 import { EquipmentPanel } from "./facility/EquipmentPanel";
 import { NetworkMapPanel } from "./facility/NetworkMapPanel";
 import { ContactsPanel } from "./facility/ContactsPanel";
+import { CalendarPanel } from "./calendar/CalendarPanel";
+import { NotificationProvider } from "./NotificationProvider";
+import { NotificationsBell } from "./NotificationsBell";
 import { AppLockOverlay, useAppLock } from "./AppLockOverlay";
 import { PaneResizer } from "./PaneResizer";
 import { MobileMenuSheet, MobileModulesSheet } from "./MobileSheets";
@@ -133,7 +137,11 @@ export function Dashboard() {
   const listRef = useRef<HTMLElement>(null);
   const { locked, lock, unlock, touch } = useAppLock();
   const isFacilityMode =
-    appMode === "inventory" || appMode === "equipment" || appMode === "network" || appMode === "contacts";
+    appMode === "calendar" ||
+    appMode === "inventory" ||
+    appMode === "equipment" ||
+    appMode === "network" ||
+    appMode === "contacts";
 
   async function logout() {
     try {
@@ -172,6 +180,7 @@ export function Dashboard() {
   const [mobilePane, setMobilePane] = useState<"list" | "detail">("list");
   const [showMobileModules, setShowMobileModules] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const loadTasks = useCallback(async (projectId?: string | null) => {
     if (!token) return;
@@ -558,7 +567,7 @@ export function Dashboard() {
   return (
     <main
       ref={shellRef}
-      className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${appMode === "tasks" ? "tasks-mode" : ""} ${isFacilityMode ? "facility-mode" : ""} ${notesView === "table" && appMode === "vault" ? "table-view" : ""} ${previewNote ? "has-quick-view" : ""} mobile-${mobilePane}`}
+      className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${appMode === "tasks" ? "tasks-mode" : ""} ${appMode === "calendar" ? "calendar-mode" : ""} ${isFacilityMode ? "facility-mode" : ""} ${notesView === "table" && appMode === "vault" ? "table-view" : ""} ${previewNote ? "has-quick-view" : ""} mobile-${mobilePane}`}
       onMouseDown={touch}
     >
       <AppLockOverlay locked={locked} onUnlock={unlock} />
@@ -567,9 +576,19 @@ export function Dashboard() {
           <FolderOpen size={16} />
           <span>{activeProject?.name ?? "Выберите проект"}</span>
         </button>
-        <button type="button" className="mobile-top-modules" onClick={() => setShowMobileModules(true)} aria-label="Разделы">
-          <LayoutGrid size={18} />
-        </button>
+        <div className="mobile-top-actions">
+          <NotificationsBell
+            open={showNotifications}
+            onToggle={() => setShowNotifications((open) => !open)}
+            onClose={() => setShowNotifications(false)}
+            onNavigate={(href) => {
+              if (href.includes("mode=calendar")) switchAppMode("calendar");
+            }}
+          />
+          <button type="button" className="mobile-top-modules" onClick={() => setShowMobileModules(true)} aria-label="Разделы">
+            <LayoutGrid size={18} />
+          </button>
+        </div>
       </div>
 
       <aside className={`sidebar ${sidebarCollapsed ? "is-collapsed" : ""}`} aria-label="Проекты">
@@ -890,6 +909,14 @@ export function Dashboard() {
                 </div>
               </div>
               <div className="sidebar-footer-actions">
+                <NotificationsBell
+                  open={showNotifications}
+                  onToggle={() => setShowNotifications((open) => !open)}
+                  onClose={() => setShowNotifications(false)}
+                  onNavigate={(href) => {
+                    if (href.includes("mode=calendar")) switchAppMode("calendar");
+                  }}
+                />
                 <ThemeToggle theme={theme} onChange={setTheme} />
                 <button className="ghost-button compact" onClick={lock} title="Заблокировать (⌘L)">
                   <Lock size={14} />
@@ -909,7 +936,9 @@ export function Dashboard() {
       {isFacilityMode ? (
         <section className="facility-full-panel mobile-content-pane" aria-label="Учёт и инфраструктура">
           {activeProjectId && token ? (
-            appMode === "inventory" ? (
+            appMode === "calendar" ? (
+              <CalendarPanel token={token} projectId={activeProjectId} />
+            ) : appMode === "inventory" ? (
               <InventoryPanel token={token} projectId={activeProjectId} />
             ) : appMode === "equipment" ? (
               <EquipmentPanel token={token} projectId={activeProjectId} />
@@ -1256,7 +1285,15 @@ export function Dashboard() {
         </button>
         <button
           type="button"
-          className={isFacilityMode ? "active" : ""}
+          className={appMode === "calendar" ? "active" : ""}
+          onClick={() => switchAppMode("calendar")}
+        >
+          <CalendarDays size={21} />
+          <span>Календарь</span>
+        </button>
+        <button
+          type="button"
+          className={isFacilityMode && appMode !== "calendar" ? "active" : ""}
           onClick={() => setShowMobileModules(true)}
         >
           <LayoutGrid size={21} />
@@ -1386,6 +1423,8 @@ export function Dashboard() {
       ) : null}
 
       {showShortcuts ? <ShortcutsHelp onClose={() => setShowShortcuts(false)} /> : null}
+
+      <NotificationProvider token={token} projectId={activeProjectId} />
 
       <CommandPalette
         open={showCommandPalette}

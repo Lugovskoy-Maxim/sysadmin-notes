@@ -2,6 +2,7 @@
 
 import {
   Building2,
+  CalendarDays,
   CheckSquare,
   FolderOpen,
   KeyRound,
@@ -23,6 +24,7 @@ type MobileModulesSheetProps = {
 const modules: { id: AppMode; label: string; icon: typeof KeyRound }[] = [
   { id: "vault", label: "Хранилище", icon: KeyRound },
   { id: "tasks", label: "Задачи", icon: CheckSquare },
+  { id: "calendar", label: "Календарь", icon: CalendarDays },
   { id: "inventory", label: "Склад", icon: Package },
   { id: "equipment", label: "Оснащение", icon: Building2 },
   { id: "network", label: "Карта сети", icon: Map },
