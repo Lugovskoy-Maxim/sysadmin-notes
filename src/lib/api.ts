@@ -45,11 +45,17 @@ export const api = {
         body: data,
       }),
     me: (token: string) =>
-      request<{ id: string; email: string; name: string; createdAt?: string }>("/auth/me", { token }),
+      request<import("./types").User>("/auth/me", { token }),
     updateProfile: (token: string, data: { name?: string; password?: string }) =>
-      request<{ id: string; email: string; name: string; createdAt?: string }>("/auth/profile", {
+      request<import("./types").User>("/auth/profile", {
         method: "PATCH",
         body: data,
+        token,
+      }),
+    claimAdmin: (token: string, secret: string) =>
+      request<import("./types").User>("/auth/claim-admin", {
+        method: "POST",
+        body: { secret },
         token,
       }),
     logout: () => request<{ ok: boolean }>("/auth/logout", { method: "POST" }),
@@ -331,6 +337,14 @@ export const api = {
       request<import("./facility-types").NetworkMap>(`/facility/network-maps/${id}`, { method: "PATCH", body: data, token }),
     removeNetworkMap: (token: string, id: string) =>
       request<{ ok: boolean }>(`/facility/network-maps/${id}`, { method: "DELETE", token }),
+    listContacts: (token: string, projectId: string) =>
+      request<import("./facility-types").Contact[]>(`/facility/contacts?projectId=${projectId}`, { token }),
+    createContact: (token: string, data: { projectId: string; fullName: string } & Partial<import("./facility-types").Contact>) =>
+      request<import("./facility-types").Contact>("/facility/contacts", { method: "POST", body: data, token }),
+    updateContact: (token: string, id: string, data: Partial<import("./facility-types").Contact>) =>
+      request<import("./facility-types").Contact>(`/facility/contacts/${id}`, { method: "PATCH", body: data, token }),
+    removeContact: (token: string, id: string) =>
+      request<{ ok: boolean }>(`/facility/contacts/${id}`, { method: "DELETE", token }),
   },
   admin: {
     listUsers: (token: string) =>
@@ -338,7 +352,13 @@ export const api = {
     updateUser: (
       token: string,
       id: string,
-      data: Partial<{ role: import("./types").UserRole; status: import("./types").UserStatus }>,
+      data: Partial<{
+        role: import("./types").UserRole;
+        status: import("./types").UserStatus;
+        plan: import("./types").PlanId;
+        subscriptionStatus: "active" | "canceled";
+        currentPeriodEnd: string | null;
+      }>,
     ) => request<import("./types").AdminUser>(`/admin/users/${id}`, { method: "PATCH", body: data, token }),
   },
   billing: {

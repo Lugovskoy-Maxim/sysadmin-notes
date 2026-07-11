@@ -182,3 +182,57 @@ export class UpdateNetworkMapDto {
   @IsOptional()
   edges?: unknown[];
 }
+
+export class CreateContactDto {
+  @IsString()
+  projectId!: string;
+
+  @IsString()
+  fullName!: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  position?: string;
+
+  @IsOptional()
+  @IsString()
+  department?: string;
+
+  @IsOptional()
+  @IsString()
+  extra?: string;
+}
+
+export class UpdateContactDto {
+  @IsOptional()
+  @IsString()
+  fullName?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  position?: string;
+
+  @IsOptional()
+  @IsString()
+  department?: string;
+
+  @IsOptional()
+  @IsString()
+  extra?: string;
+}

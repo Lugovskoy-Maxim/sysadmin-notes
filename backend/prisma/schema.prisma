@@ -102,6 +102,7 @@ model Project {
   inventoryWriteOffs  InventoryWriteOff[]
   officeRooms         OfficeRoom[]
   networkMaps         NetworkMap[]
+  contacts            Contact[]
   members             ProjectMember[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
@@ -182,6 +183,22 @@ model OfficeEquipmentRow {
   updatedAt DateTime   @updatedAt
 
   @@index([roomId, sortOrder])
+}
+
+model Contact {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fullName   String
+  phone      String?
+  email      String?
+  position   String?
+  department String?
+  extra      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([projectId, updatedAt])
 }
 
 model NetworkMap {

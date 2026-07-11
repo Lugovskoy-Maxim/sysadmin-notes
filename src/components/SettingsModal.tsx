@@ -1,12 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, CircleUserRound, Crown, GitBranch, Globe, Keyboard, Link2, Lock, Mail, Moon, RefreshCw, Send, ShieldCheck, Sun, Unlink, X } from "lucide-react";
-import type { BillingStatus } from "@/lib/types";
+import {
+  Bot,
+  CircleUserRound,
+  Crown,
+  GitBranch,
+  Globe,
+  Keyboard,
+  Link2,
+  Lock,
+  Mail,
+  Moon,
+  RefreshCw,
+  Send,
+  Shield,
+  ShieldCheck,
+  Sun,
+  Unlink,
+  Users,
+  X,
+} from "lucide-react";
+import type { BillingStatus, Project, UserRole } from "@/lib/types";
 import { api } from "@/lib/api";
 import { disableAppLock, loadLockSettings, saveLockSettings, setupAppLockPin } from "@/lib/app-lock";
 import { useToast } from "@/lib/toast";
 import type { Theme } from "@/lib/types";
+import { PricingPanel } from "./PricingPanel";
 
 type SettingsModalProps = {
   token: string;
@@ -14,14 +34,19 @@ type SettingsModalProps = {
   onThemeChange: (theme: Theme) => void;
   userName?: string;
   userEmail?: string;
+  userRole?: UserRole;
+  projects?: Project[];
   onProfileUpdate: (name: string) => void;
+  onUserRoleChange?: (role: UserRole) => void;
+  onManageTeam?: (projectId: string) => void;
   onShowShortcuts: () => void;
   onShowShares: () => void;
   billing?: BillingStatus | null;
   onBillingChange?: (billing: BillingStatus) => void;
-  onOpenPricing?: () => void;
   onClose: () => void;
 };
+
+type SettingsTab = "profile" | "billing" | "team" | "security" | "admin";
 
 const themes: { id: Theme; label: string; hint: string; icon: typeof Sun }[] = [
   { id: "light", label: "Светлая", hint: "Чистый минимализм", icon: Sun },
@@ -36,23 +61,37 @@ const providerMeta: Record<OAuthProvider, { label: string; icon: typeof GitBranc
   yandex: { label: "Яндекс", icon: CircleUserRound },
 };
 
+const tabs: { id: SettingsTab; label: string; icon: typeof CircleUserRound }[] = [
+  { id: "profile", label: "Профиль", icon: CircleUserRound },
+  { id: "billing", label: "Тариф", icon: Crown },
+  { id: "team", label: "Команда", icon: Users },
+  { id: "security", label: "Безопасность", icon: ShieldCheck },
+  { id: "admin", label: "Админ", icon: Shield },
+];
+
 export function SettingsModal({
   token,
   theme,
   onThemeChange,
   userName,
   userEmail,
+  userRole = "user",
+  projects = [],
   onProfileUpdate,
+  onUserRoleChange,
+  onManageTeam,
   onShowShortcuts,
   onShowShares,
   billing,
   onBillingChange,
-  onOpenPricing,
   onClose,
 }: SettingsModalProps) {
   const toast = useToast((s) => s.push);
+  const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [name, setName] = useState(userName ?? "");
   const [password, setPassword] = useState("");
+  const [adminSecret, setAdminSecret] = useState("");
+  const [claimingAdmin, setClaimingAdmin] = useState(false);
   const [saving, setSaving] = useState(false);
   const [securityLoading, setSecurityLoading] = useState(true);
   const [providers, setProviders] = useState<OAuthProvider[]>([]);
@@ -65,6 +104,10 @@ export function SettingsModal({
   const [lockMinutes, setLockMinutes] = useState(5);
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
+
+  const ownedProjects = projects.filter((project) => project.role === "owner");
+  const sharedProjects = projects.filter((project) => project.role && project.role !== "owner");
+  const visibleTabs = tabs.filter((tab) => tab.id !== "admin" || userRole !== "admin");
 
   useEffect(() => {
     const settings = loadLockSettings();
@@ -171,342 +214,451 @@ export function SettingsModal({
     }
   }
 
+  async function claimAdmin() {
+    if (!adminSecret.trim()) {
+      toast("Введите пароль администратора", "error");
+      return;
+    }
+    setClaimingAdmin(true);
+    try {
+      const updated = await api.auth.claimAdmin(token, adminSecret.trim());
+      onUserRoleChange?.(updated.role ?? "admin");
+      setAdminSecret("");
+      toast("Права администратора получены", "success");
+      setActiveTab("profile");
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Не удалось получить права администратора", "error");
+    } finally {
+      setClaimingAdmin(false);
+    }
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card settings-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-card settings-modal profile-modal" onClick={(e) => e.stopPropagation()}>
         <header className="modal-header settings-modal-header">
           <div>
-            <p className="overline">Настройки</p>
-            <h3>Профиль и интерфейс</h3>
+            <p className="overline">Аккаунт</p>
+            <h3>Профиль и управление</h3>
           </div>
           <button className="icon-button" onClick={onClose}>
             <X size={18} />
           </button>
         </header>
 
-        <div className="settings-modal-body">
-        <div className="settings-profile">
-          <strong>{userName}</strong>
-          <span>{userEmail}</span>
-        </div>
-
-        <label className="field-label">Имя</label>
-        <input className="text-field" value={name} onChange={(e) => setName(e.target.value)} />
-
-        <label className="field-label">Новый пароль</label>
-        <input
-          className="text-field"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Оставьте пустым, чтобы не менять"
-        />
-
-        <button className="ghost-button full" onClick={() => void saveProfile()} disabled={saving}>
-          {saving ? "Сохранение..." : "Сохранить профиль"}
-        </button>
-
-        <section className="settings-billing">
-          <div className="settings-section-head">
-            <div>
-              <span className="field-label">Подписка</span>
-              <p>Тариф и лимиты вашего аккаунта</p>
-            </div>
-            <Crown size={18} />
-          </div>
-          {billing ? (
-            <>
-              <div className="billing-status-card">
-                <strong>{billing.planName}</strong>
-                <span>
-                  Проекты: {billing.usage.ownedProjects}/{billing.limits.maxOwnedProjects}
-                  {billing.limits.teamCollaboration
-                    ? ` · Участники: до ${billing.limits.maxMembersPerProject}`
-                    : ""}
-                </span>
-                {billing.currentPeriodEnd ? (
-                  <small>Активна до {new Date(billing.currentPeriodEnd).toLocaleDateString("ru-RU")}</small>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                className="ghost-button full"
-                onClick={() => {
-                  onClose();
-                  onOpenPricing?.();
-                }}
-              >
-                {billing.isPremium ? "Сменить тариф" : "Перейти на Pro / Team"}
-              </button>
-              {billing.isPremium ? (
+        <div className="profile-modal-layout">
+          <nav className="profile-modal-tabs" aria-label="Разделы профиля">
+            {visibleTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
                 <button
-                  className="ghost-button full danger"
+                  key={tab.id}
                   type="button"
-                  onClick={async () => {
-                    if (!window.confirm("Отменить подписку?")) return;
-                    try {
-                      const status = await api.billing.cancel(token);
-                      onBillingChange?.(status);
-                      toast("Подписка отменена", "success");
-                    } catch (error) {
-                      toast(error instanceof Error ? error.message : "Не удалось отменить", "error");
-                    }
-                  }}
+                  className={activeTab === tab.id ? "active" : ""}
+                  onClick={() => setActiveTab(tab.id)}
                 >
-                  Отменить подписку
+                  <Icon size={15} />
+                  <span>{tab.label}</span>
                 </button>
-              ) : null}
-            </>
-          ) : (
-            <p className="fine-print">Загрузка тарифа…</p>
-          )}
-        </section>
+              );
+            })}
+          </nav>
 
-        <section className="settings-security">
-          <div className="settings-section-head">
-            <div>
-              <span className="field-label">Способы входа</span>
-              <p>Подключённые аккаунты и восстановление доступа</p>
-            </div>
-            <ShieldCheck size={18} />
-          </div>
-
-          {securityLoading ? (
-            <p className="settings-security-empty">Загрузка…</p>
-          ) : (
-            <>
-              <div className="identity-list">
-                <div className="identity-row">
-                  <span className="identity-icon"><ShieldCheck size={16} /></span>
-                  <div>
-                    <strong>Пароль</strong>
-                    <small>{hasPassword ? "Настроен" : "Не задан"}</small>
-                  </div>
-                  <span className={`identity-status ${hasPassword ? "active" : ""}`}>
-                    {hasPassword ? "Активен" : "Добавьте"}
-                  </span>
+          <div className="settings-modal-body profile-modal-body">
+            {activeTab === "profile" ? (
+              <>
+                <div className="settings-profile">
+                  <strong>{userName}</strong>
+                  <span>{userEmail}</span>
+                  {userRole === "admin" ? <span className="profile-role-badge">Администратор</span> : null}
                 </div>
-                {identities.map((identity) => {
-                  const provider = identity.provider as OAuthProvider;
-                  const meta = providerMeta[provider];
-                  const Icon = meta?.icon ?? CircleUserRound;
-                  const canUnlink = hasPassword || identities.length > 1;
-                  return (
-                    <div className="identity-row" key={identity.id}>
-                      <span className="identity-icon"><Icon size={16} /></span>
-                      <div>
-                        <strong>{meta?.label ?? identity.provider}</strong>
-                        <small>{identity.email ?? identity.displayName ?? "Подключён"}</small>
-                      </div>
-                      <button
-                        className="identity-unlink"
-                        type="button"
-                        disabled={!canUnlink}
-                        onClick={() => void unlinkIdentity(identity.id)}
-                        title={canUnlink ? "Отключить" : "Сначала задайте другой способ входа"}
-                      >
-                        <Unlink size={14} />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
 
-              <div className="identity-connectors">
-                {providers
-                  .filter((provider) => !identities.some((identity) => identity.provider === provider))
-                  .map((provider) => {
-                    const meta = providerMeta[provider];
-                    const Icon = meta.icon;
+                <label className="field-label">Имя</label>
+                <input className="text-field" value={name} onChange={(e) => setName(e.target.value)} />
+
+                <label className="field-label">Новый пароль</label>
+                <input
+                  className="text-field"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Оставьте пустым, чтобы не менять"
+                />
+
+                <button className="ghost-button full" onClick={() => void saveProfile()} disabled={saving}>
+                  {saving ? "Сохранение..." : "Сохранить профиль"}
+                </button>
+
+                <label className="field-label">Тема</label>
+                <div className="theme-cards">
+                  {themes.map((t) => {
+                    const Icon = t.icon;
                     return (
-                      <a className="oauth-button" href={api.auth.oauthLinkUrl(provider)} key={provider}>
-                        <Icon size={16} />
-                        Подключить {meta.label}
-                      </a>
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={`theme-card theme-card-${t.id} ${theme === t.id ? "active" : ""}`}
+                        onClick={() => onThemeChange(t.id)}
+                      >
+                        <span className="theme-card-preview" aria-hidden />
+                        <span className="theme-card-body">
+                          <Icon size={16} />
+                          <strong>{t.label}</strong>
+                          <small>{t.hint}</small>
+                        </span>
+                      </button>
                     );
                   })}
-              </div>
-            </>
-          )}
-        </section>
+                </div>
 
-        <section className="settings-security integration-settings">
-          <div className="settings-section-head">
-            <div>
-              <span className="field-label">Интеграции</span>
-              <p>Почтовые уведомления и управление через Telegram</p>
-            </div>
-            <button
-              className="identity-unlink"
-              type="button"
-              onClick={() => void refreshIntegrations()}
-              title="Обновить состояние"
-              disabled={integrationLoading}
-            >
-              <RefreshCw size={15} className={integrationLoading ? "spin" : ""} />
-            </button>
-          </div>
-
-          <div className="identity-list">
-            <div className="identity-row integration-row">
-              <span className="identity-icon"><Mail size={16} /></span>
-              <div>
-                <strong>Почта</strong>
-                <small>{integrations?.email.enabled ? integrations.email.from ?? "SMTP подключён" : "Укажите SMTP в Docker"}</small>
-              </div>
-              {integrations?.email.enabled ? (
-                <button className="identity-unlink integration-action" type="button" onClick={() => void sendTestEmail()} disabled={emailSending}>
-                  <Send size={14} />
-                  <span>{emailSending ? "Отправка" : "Тест"}</span>
+                <button className="ghost-button full" onClick={onShowShares}>
+                  <Link2 size={16} />
+                  Управление ссылками
                 </button>
-              ) : (
-                <span className="identity-status">Не настроена</span>
-              )}
-            </div>
 
-            <div className="identity-row integration-row">
-              <span className="identity-icon telegram-icon"><Bot size={16} /></span>
-              <div>
-                <strong>Telegram Bot</strong>
-                <small>
-                  {integrations?.telegram.linked
-                    ? `@${integrations.telegram.account?.username ?? integrations.telegram.account?.firstName ?? "привязан"}`
-                    : integrations?.telegram.enabled
-                      ? integrations.telegram.linkedByBot
-                      : "Добавьте токен бота в Docker"}
-                </small>
-              </div>
-              {integrations?.telegram.linked ? (
-                <button className="identity-unlink integration-action" type="button" onClick={() => void disconnectTelegram()}>
-                  <Unlink size={14} />
-                  <span>Отключить</span>
+                <button className="ghost-button full" onClick={onShowShortcuts}>
+                  <Keyboard size={16} />
+                  Горячие клавиши
                 </button>
-              ) : integrations?.telegram.enabled ? (
-                <button className="identity-unlink integration-action primary-link" type="button" onClick={() => void connectTelegram()}>
-                  <Link2 size={14} />
-                  <span>Привязать</span>
+              </>
+            ) : null}
+
+            {activeTab === "billing" ? (
+              <section className="settings-billing profile-billing-tab">
+                <div className="settings-section-head">
+                  <div>
+                    <span className="field-label">Подписка</span>
+                    <p>Тариф, лимиты и оформление Pro / Team</p>
+                  </div>
+                  <Crown size={18} />
+                </div>
+                {billing ? (
+                  <div className="billing-status-card">
+                    <strong>{billing.planName}</strong>
+                    <span>
+                      Проекты: {billing.usage.ownedProjects}/{billing.limits.maxOwnedProjects}
+                      {billing.limits.teamCollaboration ? ` · Участники: до ${billing.limits.maxMembersPerProject}` : ""}
+                    </span>
+                    {billing.currentPeriodEnd ? (
+                      <small>Активна до {new Date(billing.currentPeriodEnd).toLocaleDateString("ru-RU")}</small>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="fine-print">Загрузка тарифа…</p>
+                )}
+                <PricingPanel
+                  token={token}
+                  compact
+                  onSubscribed={(status) => {
+                    onBillingChange?.(status);
+                  }}
+                />
+              </section>
+            ) : null}
+
+            {activeTab === "team" ? (
+              <section className="profile-team-tab">
+                <div className="settings-section-head">
+                  <div>
+                    <span className="field-label">Команды проектов</span>
+                    <p>Приглашайте участников в свои проекты на тарифах Pro и Team</p>
+                  </div>
+                  <Users size={18} />
+                </div>
+
+                {billing && !billing.limits.teamCollaboration ? (
+                  <p className="profile-team-upsell">
+                    Совместная работа доступна на тарифах Pro и Team. Оформите подписку во вкладке «Тариф».
+                  </p>
+                ) : null}
+
+                <h4 className="profile-team-subtitle">Ваши проекты</h4>
+                <ul className="profile-team-list">
+                  {ownedProjects.map((project) => (
+                    <li key={project.id}>
+                      <div>
+                        <strong>{project.name}</strong>
+                        <span>
+                          Участников: {project._count?.members ?? 0}
+                          {billing ? ` · лимит ${billing.limits.maxMembersPerProject}` : ""}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="ghost-button compact"
+                        disabled={!project.capabilities?.canManageMembers}
+                        onClick={() => {
+                          onClose();
+                          onManageTeam?.(project.id);
+                        }}
+                      >
+                        Управлять
+                      </button>
+                    </li>
+                  ))}
+                  {!ownedProjects.length ? <li className="empty">Нет собственных проектов</li> : null}
+                </ul>
+
+                {sharedProjects.length ? (
+                  <>
+                    <h4 className="profile-team-subtitle">Участие в проектах</h4>
+                    <ul className="profile-team-list readonly">
+                      {sharedProjects.map((project) => (
+                        <li key={project.id}>
+                          <div>
+                            <strong>{project.name}</strong>
+                            <span>
+                              {project.user?.name ?? project.user?.email ?? "Владелец"} · роль {project.role}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+              </section>
+            ) : null}
+
+            {activeTab === "security" ? (
+              <>
+                <section className="settings-security">
+                  <div className="settings-section-head">
+                    <div>
+                      <span className="field-label">Способы входа</span>
+                      <p>Подключённые аккаунты и восстановление доступа</p>
+                    </div>
+                    <ShieldCheck size={18} />
+                  </div>
+
+                  {securityLoading ? (
+                    <p className="settings-security-empty">Загрузка…</p>
+                  ) : (
+                    <>
+                      <div className="identity-list">
+                        <div className="identity-row">
+                          <span className="identity-icon"><ShieldCheck size={16} /></span>
+                          <div>
+                            <strong>Пароль</strong>
+                            <small>{hasPassword ? "Настроен" : "Не задан"}</small>
+                          </div>
+                          <span className={`identity-status ${hasPassword ? "active" : ""}`}>
+                            {hasPassword ? "Активен" : "Добавьте"}
+                          </span>
+                        </div>
+                        {identities.map((identity) => {
+                          const provider = identity.provider as OAuthProvider;
+                          const meta = providerMeta[provider];
+                          const Icon = meta?.icon ?? CircleUserRound;
+                          const canUnlink = hasPassword || identities.length > 1;
+                          return (
+                            <div className="identity-row" key={identity.id}>
+                              <span className="identity-icon"><Icon size={16} /></span>
+                              <div>
+                                <strong>{meta?.label ?? identity.provider}</strong>
+                                <small>{identity.email ?? identity.displayName ?? "Подключён"}</small>
+                              </div>
+                              <button
+                                className="identity-unlink"
+                                type="button"
+                                disabled={!canUnlink}
+                                onClick={() => void unlinkIdentity(identity.id)}
+                                title={canUnlink ? "Отключить" : "Сначала задайте другой способ входа"}
+                              >
+                                <Unlink size={14} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="identity-connectors">
+                        {providers
+                          .filter((provider) => !identities.some((identity) => identity.provider === provider))
+                          .map((provider) => {
+                            const meta = providerMeta[provider];
+                            const Icon = meta.icon;
+                            return (
+                              <a className="oauth-button" href={api.auth.oauthLinkUrl(provider)} key={provider}>
+                                <Icon size={16} />
+                                Подключить {meta.label}
+                              </a>
+                            );
+                          })}
+                      </div>
+                    </>
+                  )}
+                </section>
+
+                <section className="settings-security integration-settings">
+                  <div className="settings-section-head">
+                    <div>
+                      <span className="field-label">Интеграции</span>
+                      <p>Почтовые уведомления и управление через Telegram</p>
+                    </div>
+                    <button
+                      className="identity-unlink"
+                      type="button"
+                      onClick={() => void refreshIntegrations()}
+                      title="Обновить состояние"
+                      disabled={integrationLoading}
+                    >
+                      <RefreshCw size={15} className={integrationLoading ? "spin" : ""} />
+                    </button>
+                  </div>
+
+                  <div className="identity-list">
+                    <div className="identity-row integration-row">
+                      <span className="identity-icon"><Mail size={16} /></span>
+                      <div>
+                        <strong>Почта</strong>
+                        <small>{integrations?.email.enabled ? integrations.email.from ?? "SMTP подключён" : "Укажите SMTP в Docker"}</small>
+                      </div>
+                      {integrations?.email.enabled ? (
+                        <button className="identity-unlink integration-action" type="button" onClick={() => void sendTestEmail()} disabled={emailSending}>
+                          <Send size={14} />
+                          <span>{emailSending ? "Отправка" : "Тест"}</span>
+                        </button>
+                      ) : (
+                        <span className="identity-status">Не настроена</span>
+                      )}
+                    </div>
+
+                    <div className="identity-row integration-row">
+                      <span className="identity-icon telegram-icon"><Bot size={16} /></span>
+                      <div>
+                        <strong>Telegram Bot</strong>
+                        <small>
+                          {integrations?.telegram.linked
+                            ? `@${integrations.telegram.account?.username ?? integrations.telegram.account?.firstName ?? "привязан"}`
+                            : integrations?.telegram.enabled
+                              ? integrations.telegram.linkedByBot
+                              : "Добавьте токен бота в Docker"}
+                        </small>
+                      </div>
+                      {integrations?.telegram.linked ? (
+                        <button className="identity-unlink integration-action" type="button" onClick={() => void disconnectTelegram()}>
+                          <Unlink size={14} />
+                          <span>Отключить</span>
+                        </button>
+                      ) : integrations?.telegram.enabled ? (
+                        <button className="identity-unlink integration-action primary-link" type="button" onClick={() => void connectTelegram()}>
+                          <Link2 size={14} />
+                          <span>Привязать</span>
+                        </button>
+                      ) : (
+                        <span className="identity-status">Не настроен</span>
+                      )}
+                    </div>
+                  </div>
+                </section>
+
+                <section className="settings-security app-lock-settings">
+                  <div className="settings-section-head">
+                    <div>
+                      <span className="field-label">Блокировка приложения</span>
+                      <p>PIN при сворачивании вкладки и по таймауту неактивности</p>
+                    </div>
+                    <Lock size={18} />
+                  </div>
+
+                  <label className="settings-toggle-row">
+                    <span>Включить блокировку</span>
+                    <input
+                      type="checkbox"
+                      checked={lockEnabled}
+                      onChange={(e) => {
+                        if (!e.target.checked) {
+                          saveLockSettings(disableAppLock());
+                          setLockEnabled(false);
+                          setNewPin("");
+                          setConfirmPin("");
+                          toast("Блокировка отключена", "success");
+                          return;
+                        }
+                        setLockEnabled(true);
+                      }}
+                    />
+                  </label>
+
+                  {lockEnabled ? (
+                    <>
+                      <label className="field-label">PIN-код (4–6 цифр)</label>
+                      <input
+                        className="text-field"
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={newPin}
+                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="Новый PIN"
+                      />
+                      <input
+                        className="text-field"
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={confirmPin}
+                        onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="Повторите PIN"
+                      />
+                      <label className="field-label">Автоблокировка через (мин)</label>
+                      <input
+                        className="text-field"
+                        type="number"
+                        min={1}
+                        max={120}
+                        value={lockMinutes}
+                        onChange={(e) => setLockMinutes(Math.max(1, Number(e.target.value) || 5))}
+                      />
+                      <button
+                        className="ghost-button full"
+                        type="button"
+                        onClick={async () => {
+                          if (newPin.length < 4 || newPin !== confirmPin) {
+                            toast("PIN должен совпадать и содержать минимум 4 цифры", "error");
+                            return;
+                          }
+                          const settings = await setupAppLockPin(newPin);
+                          saveLockSettings({ ...settings, autoLockMinutes: lockMinutes });
+                          setNewPin("");
+                          setConfirmPin("");
+                          toast("PIN сохранён, блокировка включена", "success");
+                        }}
+                      >
+                        Сохранить PIN
+                      </button>
+                    </>
+                  ) : null}
+                </section>
+              </>
+            ) : null}
+
+            {activeTab === "admin" && userRole !== "admin" ? (
+              <section className="profile-admin-claim">
+                <div className="settings-section-head">
+                  <div>
+                    <span className="field-label">Права администратора</span>
+                    <p>Введите уникальный пароль, чтобы управлять пользователями и подписками</p>
+                  </div>
+                  <Shield size={18} />
+                </div>
+                <label className="field-label">Пароль администратора</label>
+                <input
+                  className="text-field"
+                  type="password"
+                  value={adminSecret}
+                  onChange={(e) => setAdminSecret(e.target.value)}
+                  placeholder="Секретный пароль с сервера"
+                />
+                <button className="primary-button full" type="button" onClick={() => void claimAdmin()} disabled={claimingAdmin}>
+                  {claimingAdmin ? "Проверка…" : "Стать администратором"}
                 </button>
-              ) : (
-                <span className="identity-status">Не настроен</span>
-              )}
-            </div>
+                <p className="fine-print">
+                  После получения прав откройте раздел «Пользователи» в боковой панели — там можно выдавать подписки и блокировать аккаунты.
+                </p>
+              </section>
+            ) : null}
           </div>
-
-          <p className="integration-help">
-            После привязки бот умеет создавать и редактировать заметки, пароли и задачи. Команда <code>/login</code> создаёт одноразовую ссылку входа.
-          </p>
-        </section>
-
-        <section className="settings-security app-lock-settings">
-          <div className="settings-section-head">
-            <div>
-              <span className="field-label">Блокировка приложения</span>
-              <p>PIN при сворачивании вкладки и по таймауту неактивности</p>
-            </div>
-            <Lock size={18} />
-          </div>
-
-          <label className="settings-toggle-row">
-            <span>Включить блокировку</span>
-            <input
-              type="checkbox"
-              checked={lockEnabled}
-              onChange={(e) => {
-                if (!e.target.checked) {
-                  saveLockSettings(disableAppLock());
-                  setLockEnabled(false);
-                  setNewPin("");
-                  setConfirmPin("");
-                  toast("Блокировка отключена", "success");
-                  return;
-                }
-                setLockEnabled(true);
-              }}
-            />
-          </label>
-
-          {lockEnabled ? (
-            <>
-              <label className="field-label">PIN-код (4–6 цифр)</label>
-              <input
-                className="text-field"
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="Новый PIN"
-              />
-              <input
-                className="text-field"
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="Повторите PIN"
-              />
-              <label className="field-label">Автоблокировка через (мин)</label>
-              <input
-                className="text-field"
-                type="number"
-                min={1}
-                max={120}
-                value={lockMinutes}
-                onChange={(e) => setLockMinutes(Math.max(1, Number(e.target.value) || 5))}
-              />
-              <button
-                className="ghost-button full"
-                type="button"
-                onClick={async () => {
-                  if (newPin.length < 4 || newPin !== confirmPin) {
-                    toast("PIN должен совпадать и содержать минимум 4 цифры", "error");
-                    return;
-                  }
-                  const settings = await setupAppLockPin(newPin);
-                  saveLockSettings({ ...settings, autoLockMinutes: lockMinutes });
-                  setNewPin("");
-                  setConfirmPin("");
-                  toast("PIN сохранён, блокировка включена", "success");
-                }}
-              >
-                Сохранить PIN
-              </button>
-            </>
-          ) : null}
-        </section>
-
-        <label className="field-label">Тема</label>
-        <div className="theme-cards">
-          {themes.map((t) => {
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                className={`theme-card theme-card-${t.id} ${theme === t.id ? "active" : ""}`}
-                onClick={() => onThemeChange(t.id)}
-              >
-                <span className="theme-card-preview" aria-hidden />
-                <span className="theme-card-body">
-                  <Icon size={16} />
-                  <strong>{t.label}</strong>
-                  <small>{t.hint}</small>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <button className="ghost-button full" onClick={onShowShares}>
-          <Link2 size={16} />
-          Управление ссылками
-        </button>
-
-        <button className="ghost-button full" onClick={onShowShortcuts}>
-          <Keyboard size={16} />
-          Горячие клавиши
-        </button>
         </div>
       </div>
     </div>

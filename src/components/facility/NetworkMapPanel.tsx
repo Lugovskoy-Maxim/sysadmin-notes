@@ -437,6 +437,7 @@ export function NetworkMapPanel({ token, projectId }: NetworkMapPanelProps) {
     <div className="facility-panel network-panel">
       <div className="network-toolbar">
         <select
+          className="text-field network-select"
           value={activeMap?.id ?? ""}
           onChange={(e) => {
             const map = maps.find((item) => item.id === e.target.value) ?? null;
@@ -616,7 +617,6 @@ export function NetworkMapPanel({ token, projectId }: NetworkMapPanelProps) {
                       };
                       setSelectedNodeId(node.id);
                       setSelectedEdgeId(null);
-                      setInspectorTab("node");
                     }}
                   >
                     <span className="network-node-icon">
@@ -660,7 +660,11 @@ export function NetworkMapPanel({ token, projectId }: NetworkMapPanelProps) {
                 <label className="field-label">VLAN</label>
                 <input className="text-field" value={selectedNode.vlan ?? ""} onChange={(e) => updateSelectedNode({ vlan: e.target.value })} placeholder="10" />
                 <label className="field-label">Тип</label>
-                <select value={selectedNode.type} onChange={(e) => updateSelectedNode({ type: e.target.value as NetworkNode["type"] })}>
+                <select
+                  className="text-field network-select"
+                  value={selectedNode.type}
+                  onChange={(e) => updateSelectedNode({ type: e.target.value as NetworkNode["type"] })}
+                >
                   {networkNodeTypes.map((type) => (
                     <option key={type.id} value={type.id}>
                       {type.label}
@@ -668,7 +672,11 @@ export function NetworkMapPanel({ token, projectId }: NetworkMapPanelProps) {
                   ))}
                 </select>
                 <label className="field-label">Статус</label>
-                <select value={selectedNode.status ?? "unknown"} onChange={(e) => updateSelectedNode({ status: e.target.value as NetworkNode["status"] })}>
+                <select
+                  className="text-field network-select"
+                  value={selectedNode.status ?? "unknown"}
+                  onChange={(e) => updateSelectedNode({ status: e.target.value as NetworkNode["status"] })}
+                >
                   {networkNodeStatuses.map((status) => (
                     <option key={status.id} value={status.id}>
                       {status.label}
@@ -696,7 +704,11 @@ export function NetworkMapPanel({ token, projectId }: NetworkMapPanelProps) {
                 <label className="field-label">Подпись (порт / VLAN)</label>
                 <input className="text-field" value={selectedEdge.label ?? ""} onChange={(e) => updateSelectedEdge({ label: e.target.value })} placeholder="Gi0/1 → Gi0/24" />
                 <label className="field-label">Тип канала</label>
-                <select value={selectedEdge.kind ?? "ethernet"} onChange={(e) => updateSelectedEdge({ kind: e.target.value as NetworkEdge["kind"] })}>
+                <select
+                  className="text-field network-select"
+                  value={selectedEdge.kind ?? "ethernet"}
+                  onChange={(e) => updateSelectedEdge({ kind: e.target.value as NetworkEdge["kind"] })}
+                >
                   {networkEdgeKinds.map((kind) => (
                     <option key={kind.id} value={kind.id}>
                       {kind.label}

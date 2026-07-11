@@ -63,6 +63,7 @@ import { AppModeNav } from "./ui/AppModeNav";
 import { InventoryPanel } from "./facility/InventoryPanel";
 import { EquipmentPanel } from "./facility/EquipmentPanel";
 import { NetworkMapPanel } from "./facility/NetworkMapPanel";
+import { ContactsPanel } from "./facility/ContactsPanel";
 import { AppLockOverlay, useAppLock } from "./AppLockOverlay";
 import { PaneResizer } from "./PaneResizer";
 import { MobileMenuSheet, MobileModulesSheet } from "./MobileSheets";
@@ -131,7 +132,8 @@ export function Dashboard() {
   const shellRef = useRef<HTMLElement>(null);
   const listRef = useRef<HTMLElement>(null);
   const { locked, lock, unlock, touch } = useAppLock();
-  const isFacilityMode = appMode === "inventory" || appMode === "equipment" || appMode === "network";
+  const isFacilityMode =
+    appMode === "inventory" || appMode === "equipment" || appMode === "network" || appMode === "contacts";
 
   async function logout() {
     try {
@@ -248,6 +250,7 @@ export function Dashboard() {
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const facilityEnabled = activeProject?.capabilities?.facility ?? billing?.limits.facilityModules ?? false;
   const lockedFacilityModes: AppMode[] = facilityEnabled ? [] : ["inventory", "equipment", "network"];
+  // contacts are available on all plans
 
   useEffect(() => {
     if (lockedFacilityModes.includes(appMode)) setAppMode("vault");
@@ -910,13 +913,15 @@ export function Dashboard() {
               <InventoryPanel token={token} projectId={activeProjectId} />
             ) : appMode === "equipment" ? (
               <EquipmentPanel token={token} projectId={activeProjectId} />
-            ) : (
+            ) : appMode === "network" ? (
               <NetworkMapPanel token={token} projectId={activeProjectId} />
+            ) : (
+              <ContactsPanel token={token} projectId={activeProjectId} />
             )
           ) : (
             <div className="empty-editor">
               <strong>Выберите проект</strong>
-              <span>Склад, оснащение и карта сети привязаны к проекту</span>
+              <span>Разделы учёта и контакты привязаны к проекту</span>
             </div>
           )}
         </section>
@@ -1354,7 +1359,14 @@ export function Dashboard() {
           onThemeChange={setTheme}
           userName={user?.name}
           userEmail={user?.email}
+          userRole={user?.role}
+          projects={projects}
           onProfileUpdate={(name) => user && setUser({ ...user, name })}
+          onUserRoleChange={(role) => user && setUser({ ...user, role })}
+          onManageTeam={(projectId) => {
+            void switchProject(projectId);
+            setShowProjectMembers(true);
+          }}
           onShowShortcuts={() => {
             setShowSettings(false);
             setShowShortcuts(true);
@@ -1365,7 +1377,6 @@ export function Dashboard() {
           }}
           billing={billing}
           onBillingChange={setBilling}
-          onOpenPricing={() => setShowPricing(true)}
           onClose={() => setShowSettings(false)}
         />
       ) : null}

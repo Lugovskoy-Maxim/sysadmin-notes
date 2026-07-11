@@ -1,6 +1,6 @@
 export type NoteType = "credential" | "instruction" | "schema" | "link";
 export type VaultSection = "passwords" | "instructions" | "schemas";
-export type AppMode = "vault" | "tasks" | "inventory" | "equipment" | "network";
+export type AppMode = "vault" | "tasks" | "inventory" | "equipment" | "network" | "contacts";
 
 export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskPriority = "low" | "medium" | "high";
@@ -138,6 +138,12 @@ export type User = {
   createdAt: string;
 };
 
+export type AdminUserSubscription = {
+  plan: PlanId;
+  status: string;
+  currentPeriodEnd: string | null;
+};
+
 export type AdminUser = {
   id: string;
   email: string;
@@ -145,6 +151,7 @@ export type AdminUser = {
   role: UserRole;
   status: UserStatus;
   createdAt: string;
+  subscription: AdminUserSubscription;
   _count: { projects: number; projectMembers: number };
 };
 

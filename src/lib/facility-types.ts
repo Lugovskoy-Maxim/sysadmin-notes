@@ -73,6 +73,19 @@ export type NetworkNodeType =
 
 export type NetworkNodeStatus = "online" | "offline" | "unknown";
 
+export type Contact = {
+  id: string;
+  projectId: string;
+  fullName: string;
+  phone?: string | null;
+  email?: string | null;
+  position?: string | null;
+  department?: string | null;
+  extra?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type NetworkNode = {
   id: string;
   label: string;

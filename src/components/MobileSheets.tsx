@@ -8,6 +8,7 @@ import {
   Map,
   Package,
   Search,
+  Users,
   Settings,
   X,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const modules: { id: AppMode; label: string; icon: typeof KeyRound }[] = [
   { id: "inventory", label: "Склад", icon: Package },
   { id: "equipment", label: "Оснащение", icon: Building2 },
   { id: "network", label: "Карта сети", icon: Map },
+  { id: "contacts", label: "Контакты", icon: Users },
 ];
 
 export function MobileModulesSheet({ appMode, onSelect, onClose }: MobileModulesSheetProps) {

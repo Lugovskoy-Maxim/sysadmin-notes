@@ -101,6 +101,35 @@ export class BillingService {
     return this.getStatus(userId);
   }
 
+  async setSubscriptionForUser(
+    userId: string,
+    data: { plan: PlanId; status?: 'active' | 'canceled'; currentPeriodEnd?: string | null },
+  ) {
+    await this.getOrCreateSubscription(userId);
+    const periodEnd =
+      data.currentPeriodEnd === null
+        ? null
+        : data.currentPeriodEnd
+          ? new Date(data.currentPeriodEnd)
+          : data.plan === 'free'
+            ? null
+            : (() => {
+                const end = new Date();
+                end.setDate(end.getDate() + 30);
+                return end;
+              })();
+
+    await this.prisma.subscription.update({
+      where: { userId },
+      data: {
+        plan: data.plan,
+        status: data.status ?? 'active',
+        currentPeriodEnd: periodEnd,
+      },
+    });
+    return this.getStatus(userId);
+  }
+
   async assertCanCreateProject(userId: string) {
     const plan = await this.resolvePlan(userId);
     const limit = PLAN_CATALOG[plan].maxOwnedProjects;

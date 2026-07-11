@@ -1,4 +1,4 @@
-import { IsIn, IsOptional } from 'class-validator';
+import { IsIn, IsISO8601, IsOptional } from 'class-validator';
 
 export class UpdateUserAdminDto {
   @IsOptional()
@@ -8,4 +8,16 @@ export class UpdateUserAdminDto {
   @IsOptional()
   @IsIn(['active', 'suspended'])
   status?: 'active' | 'suspended';
+
+  @IsOptional()
+  @IsIn(['free', 'pro', 'team'])
+  plan?: 'free' | 'pro' | 'team';
+
+  @IsOptional()
+  @IsIn(['active', 'canceled'])
+  subscriptionStatus?: 'active' | 'canceled';
+
+  @IsOptional()
+  @IsISO8601()
+  currentPeriodEnd?: string | null;
 }

@@ -4,12 +4,14 @@ import { safeJsonParse } from '../common/json.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService, ProjectRole } from '../projects/project-access.service';
 import {
+  CreateContactDto,
   CreateEquipmentRowDto,
   CreateInventoryItemDto,
   CreateNetworkMapDto,
   CreateOfficeRoomDto,
   CreateWriteOffDto,
   UpdateColumnDefsDto,
+  UpdateContactDto,
   UpdateEquipmentRowDto,
   UpdateInventoryItemDto,
   UpdateNetworkMapDto,
@@ -26,6 +28,11 @@ export class FacilityService {
 
   private async assertProject(userId: string, projectId: string, minRole: ProjectRole = 'viewer') {
     await this.billing.assertProjectFeature(projectId, 'facility');
+    const { project } = await this.access.assertAccess(userId, projectId, minRole);
+    return project;
+  }
+
+  private async assertProjectAccess(userId: string, projectId: string, minRole: ProjectRole = 'viewer') {
     const { project } = await this.access.assertAccess(userId, projectId, minRole);
     return project;
   }
@@ -369,6 +376,65 @@ export class FacilityService {
     if (!map) throw new NotFoundException('Карта не найдена');
     await this.assertProject(userId, map.projectId, 'editor');
     await this.prisma.networkMap.delete({ where: { id } });
+    return { ok: true };
+  }
+
+  private formatContact<T extends { createdAt: Date; updatedAt: Date }>(contact: T) {
+    return {
+      ...contact,
+      createdAt: contact.createdAt.toISOString(),
+      updatedAt: contact.updatedAt.toISOString(),
+    };
+  }
+
+  async listContacts(userId: string, projectId: string) {
+    await this.assertProjectAccess(userId, projectId, 'viewer');
+    const contacts = await this.prisma.contact.findMany({
+      where: { projectId },
+      orderBy: [{ fullName: 'asc' }, { updatedAt: 'desc' }],
+    });
+    return contacts.map((contact) => this.formatContact(contact));
+  }
+
+  async createContact(userId: string, dto: CreateContactDto) {
+    await this.assertProjectAccess(userId, dto.projectId, 'editor');
+    const contact = await this.prisma.contact.create({
+      data: {
+        projectId: dto.projectId,
+        fullName: dto.fullName.trim() || 'Новый контакт',
+        phone: dto.phone,
+        email: dto.email,
+        position: dto.position,
+        department: dto.department,
+        extra: dto.extra,
+      },
+    });
+    return this.formatContact(contact);
+  }
+
+  async updateContact(userId: string, id: string, dto: UpdateContactDto) {
+    const contact = await this.prisma.contact.findUnique({ where: { id } });
+    if (!contact) throw new NotFoundException('Контакт не найден');
+    await this.assertProjectAccess(userId, contact.projectId, 'editor');
+    const updated = await this.prisma.contact.update({
+      where: { id },
+      data: {
+        fullName: dto.fullName?.trim() || undefined,
+        phone: dto.phone,
+        email: dto.email,
+        position: dto.position,
+        department: dto.department,
+        extra: dto.extra,
+      },
+    });
+    return this.formatContact(updated);
+  }
+
+  async removeContact(userId: string, id: string) {
+    const contact = await this.prisma.contact.findUnique({ where: { id } });
+    if (!contact) throw new NotFoundException('Контакт не найден');
+    await this.assertProjectAccess(userId, contact.projectId, 'editor');
+    await this.prisma.contact.delete({ where: { id } });
     return { ok: true };
   }
 }

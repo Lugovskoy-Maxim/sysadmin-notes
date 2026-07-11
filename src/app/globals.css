@@ -238,6 +238,28 @@ button {
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
+select,
+.form-control select,
+.meta-field select,
+.action-dropdown select,
+.list-tools select {
+  color: var(--foreground);
+  background-color: var(--input-bg);
+}
+
+select option,
+select optgroup {
+  color: var(--foreground);
+  background-color: var(--panel);
+}
+
+select option:checked,
+select option:hover,
+select option:focus {
+  color: var(--foreground);
+  background-color: color-mix(in srgb, var(--teal) 18%, var(--panel));
+}
+
 .text-field {
   height: 46px;
   padding: 0 13px;

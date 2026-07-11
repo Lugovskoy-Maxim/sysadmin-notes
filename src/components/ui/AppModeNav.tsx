@@ -7,6 +7,7 @@ import {
   KeyRound,
   Map,
   Package,
+  Users,
 } from "lucide-react";
 import type { AppMode } from "@/lib/types";
 
@@ -16,6 +17,7 @@ const modes: { id: AppMode; label: string; icon: typeof KeyRound; premium?: bool
   { id: "inventory", label: "Склад", icon: Package, premium: true },
   { id: "equipment", label: "Оснащение", icon: Building2, premium: true },
   { id: "network", label: "Сеть", icon: Map, premium: true },
+  { id: "contacts", label: "Контакты", icon: Users },
 ];
 
 type AppModeNavProps = {

@@ -34,3 +34,10 @@ export class UpdateProfileDto {
   @MaxLength(128)
   password?: string;
 }
+
+export class ClaimAdminDto {
+  @IsString()
+  @MinLength(4)
+  @MaxLength(128)
+  secret!: string;
+}

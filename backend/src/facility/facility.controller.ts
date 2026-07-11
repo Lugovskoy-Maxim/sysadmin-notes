@@ -1,12 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
+  CreateContactDto,
   CreateEquipmentRowDto,
   CreateInventoryItemDto,
   CreateNetworkMapDto,
   CreateOfficeRoomDto,
   CreateWriteOffDto,
   UpdateColumnDefsDto,
+  UpdateContactDto,
   UpdateEquipmentRowDto,
   UpdateInventoryItemDto,
   UpdateNetworkMapDto,
@@ -137,5 +139,29 @@ export class FacilityController {
   @Delete('network-maps/:id')
   removeNetworkMap(@Req() req: { user: { id: string } }, @Param('id') id: string) {
     return this.facility.removeNetworkMap(req.user.id, id);
+  }
+
+  @Get('contacts')
+  listContacts(@Req() req: { user: { id: string } }, @Query('projectId') projectId: string) {
+    return this.facility.listContacts(req.user.id, projectId);
+  }
+
+  @Post('contacts')
+  createContact(@Req() req: { user: { id: string } }, @Body() dto: CreateContactDto) {
+    return this.facility.createContact(req.user.id, dto);
+  }
+
+  @Patch('contacts/:id')
+  updateContact(
+    @Req() req: { user: { id: string } },
+    @Param('id') id: string,
+    @Body() dto: UpdateContactDto,
+  ) {
+    return this.facility.updateContact(req.user.id, id, dto);
+  }
+
+  @Delete('contacts/:id')
+  removeContact(@Req() req: { user: { id: string } }, @Param('id') id: string) {
+    return this.facility.removeContact(req.user.id, id);
   }
 }

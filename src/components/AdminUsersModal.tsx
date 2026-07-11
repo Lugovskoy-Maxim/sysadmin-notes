@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Shield, ShieldOff, UserCog, X } from "lucide-react";
+import { Crown, Shield, ShieldOff, UserCog, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { PLAN_CARDS } from "@/lib/plans";
 import { useToast } from "@/lib/toast";
-import type { AdminUser } from "@/lib/types";
+import type { AdminUser, PlanId } from "@/lib/types";
 
 type AdminUsersModalProps = {
   token: string;
@@ -32,7 +33,14 @@ export function AdminUsersModal({ token, currentUserId, onClose }: AdminUsersMod
     void load();
   }, [load]);
 
-  async function patchUser(user: AdminUser, patch: Partial<Pick<AdminUser, "role" | "status">>) {
+  async function patchUser(
+    user: AdminUser,
+    patch: Partial<Pick<AdminUser, "role" | "status">> & {
+      plan?: PlanId;
+      subscriptionStatus?: "active" | "canceled";
+      currentPeriodEnd?: string | null;
+    },
+  ) {
     try {
       const updated = await api.admin.updateUser(token, user.id, patch);
       setUsers((list) => list.map((item) => (item.id === updated.id ? updated : item)));
@@ -48,14 +56,16 @@ export function AdminUsersModal({ token, currentUserId, onClose }: AdminUsersMod
         <header className="modal-header">
           <div>
             <p className="overline">Администрирование</p>
-            <h3>Пользователи</h3>
+            <h3>Пользователи и подписки</h3>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Закрыть">
             <X size={18} />
           </button>
         </header>
         <div className="modal-body admin-users-body">
-          <p className="fine-print">Первый зарегистрированный пользователь автоматически становится администратором.</p>
+          <p className="fine-print">
+            Управляйте ролями, блокировками и тарифами всех зарегистрированных пользователей.
+          </p>
           {loading ? (
             <p>Загрузка…</p>
           ) : (
@@ -72,15 +82,46 @@ export function AdminUsersModal({ token, currentUserId, onClose }: AdminUsersMod
                       Проектов: {user._count.projects} · Участий: {user._count.projectMembers}
                       {user.id === currentUserId ? " · это вы" : ""}
                     </small>
+                    <span className="admin-user-plan">
+                      <Crown size={12} />
+                      {PLAN_CARDS.find((plan) => plan.id === user.subscription.plan)?.name ?? user.subscription.plan}
+                      {user.subscription.currentPeriodEnd
+                        ? ` до ${new Date(user.subscription.currentPeriodEnd).toLocaleDateString("ru-RU")}`
+                        : ""}
+                    </span>
                   </div>
                   <div className="admin-user-actions">
                     <select
+                      className="text-field network-select"
                       value={user.role}
                       disabled={user.id === currentUserId && user.role === "admin"}
                       onChange={(e) => void patchUser(user, { role: e.target.value as AdminUser["role"] })}
                     >
                       <option value="user">Пользователь</option>
                       <option value="admin">Администратор</option>
+                    </select>
+                    <select
+                      className="text-field network-select"
+                      value={user.subscription.plan}
+                      onChange={(e) => void patchUser(user, { plan: e.target.value as PlanId })}
+                    >
+                      {PLAN_CARDS.map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="text-field network-select"
+                      value={user.subscription.status}
+                      onChange={(e) =>
+                        void patchUser(user, {
+                          subscriptionStatus: e.target.value as "active" | "canceled",
+                        })
+                      }
+                    >
+                      <option value="active">Подписка активна</option>
+                      <option value="canceled">Подписка отменена</option>
                     </select>
                     <button
                       type="button"

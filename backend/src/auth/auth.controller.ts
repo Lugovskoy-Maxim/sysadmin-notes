@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
+import { ClaimAdminDto, LoginDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
+import { AdminService } from '../admin/admin.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { OAuthService } from './oauth.service';
 import { sessionCookieOptions } from './session-cookie';
@@ -14,6 +15,7 @@ export class AuthController {
     private auth: AuthService,
     private oauth: OAuthService,
     private config: ConfigService,
+    private admin: AdminService,
   ) {}
 
   @Throttle({ auth: { limit: 10, ttl: 60_000 } })
@@ -122,6 +124,12 @@ export class AuthController {
   @Patch('profile')
   updateProfile(@Req() req: { user: { id: string } }, @Body() dto: UpdateProfileDto) {
     return this.auth.updateProfile(req.user.id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('claim-admin')
+  claimAdmin(@Req() req: { user: { id: string } }, @Body() dto: ClaimAdminDto) {
+    return this.admin.claimAdmin(req.user.id, dto.secret);
   }
 
   private setSessionCookie(response: Response, token: string) {
