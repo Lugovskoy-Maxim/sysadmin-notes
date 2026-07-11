@@ -5,6 +5,7 @@ import { PwaProvider } from "@/components/PwaProvider";
 import { ToastContainer } from "@/components/Toast";
 import "./globals.css";
 import "./workspace.css";
+import "./ui-polish.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

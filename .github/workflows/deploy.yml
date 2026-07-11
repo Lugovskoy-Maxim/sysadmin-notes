@@ -12,12 +12,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Validate deploy secrets
-        id: auth
+      - name: Check SSH secrets
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -25,57 +22,41 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-          missing=0
-
-          if [ -z "${SSH_HOST:-}" ]; then
-            echo "::error::Secret SSH_HOST is missing."
-            missing=1
-          fi
-
-          if [ -z "${SSH_USER:-}" ]; then
-            echo "::error::Secret SSH_USER is missing (for example: root)."
-            missing=1
-          fi
-
-          if [ -n "${SSH_PASSWORD:-}" ]; then
-            echo "method=password" >> "$GITHUB_OUTPUT"
-            echo "Using SSH password authentication."
-          elif [ -n "${SSH_PRIVATE_KEY:-}" ] && printf '%s' "$SSH_PRIVATE_KEY" | grep -q 'BEGIN .*PRIVATE KEY'; then
-            echo "method=key" >> "$GITHUB_OUTPUT"
-            echo "Using SSH key authentication."
-          else
-            echo "::error::Set either SSH_PASSWORD (for password login) or SSH_PRIVATE_KEY (for key login)."
-            missing=1
-          fi
-
-          if [ "$missing" -ne 0 ]; then
+          [ -n "${SSH_HOST:-}" ] || { echo "::error::SSH_HOST is required"; exit 1; }
+          [ -n "${SSH_USER:-}" ] || { echo "::error::SSH_USER is required"; exit 1; }
+          if [ -z "${SSH_PASSWORD:-}" ] && [ -z "${SSH_PRIVATE_KEY:-}" ]; then
+            echo "::error::Set SSH_PASSWORD or SSH_PRIVATE_KEY"
             exit 1
           fi
 
       - name: Deploy over SSH (password)
-        if: steps.auth.outputs.method == 'password'
+        if: ${{ secrets.SSH_PASSWORD != '' }}
         uses: appleboy/ssh-action@v1.2.0
-        env:
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          envs: DEPLOY_PATH
+          command_timeout: 40m
           script_stop: true
-          script_path: deploy/github-remote-deploy.sh
+          script: |
+            set -euo pipefail
+            cd /opt/sysadmin-notes
+            git pull origin main
+            bash deploy/deploy.sh
 
       - name: Deploy over SSH (key)
-        if: steps.auth.outputs.method == 'key'
+        if: ${{ secrets.SSH_PASSWORD == '' }}
         uses: appleboy/ssh-action@v1.2.0
-        env:
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          envs: DEPLOY_PATH
+          command_timeout: 40m
           script_stop: true
-          script_path: deploy/github-remote-deploy.sh
+          script: |
+            set -euo pipefail
+            cd /opt/sysadmin-notes
+            git pull origin main
+            bash deploy/deploy.sh

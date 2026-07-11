@@ -128,6 +128,7 @@ export function ImportModal({ token, projectId, vaultSection, onClose, onImporte
           </button>
         </header>
 
+        <div className="modal-body">
         <div className="import-tabs segmented-control full">
           <button type="button" className={tab === "passwords" ? "active" : ""} onClick={() => { setTab("passwords"); setPreview(null); setError(""); }}>
             <KeyRound size={14} />
@@ -210,6 +211,7 @@ export function ImportModal({ token, projectId, vaultSection, onClose, onImporte
             </label>
           </>
         )}
+        </div>
       </div>
     </div>
   );

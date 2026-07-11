@@ -67,6 +67,7 @@ export function ColumnEditorModal({ title, columns, onSave, onClose }: ColumnEdi
                 onChange={(e) => updateColumn(col.id, { label: e.target.value })}
               />
               <select
+                className="text-field network-select"
                 value={col.type}
                 disabled={col.system}
                 onChange={(e) => updateColumn(col.id, { type: e.target.value as TableColumnType })}

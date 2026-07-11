@@ -254,29 +254,36 @@ export function InventoryPanel({ token, projectId }: InventoryPanelProps) {
       {writeOffItemId ? (
         <div className="modal-overlay" onClick={() => setWriteOffItemId(null)}>
           <div className="modal-card writeoff-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Списание со склада</h3>
-            <label className="field-label">Количество</label>
-            <input
-              className="text-field"
-              type="number"
-              min={1}
-              value={writeOffQty}
-              onChange={(e) => setWriteOffQty(Math.max(1, Number(e.target.value) || 1))}
-            />
-            <label className="field-label">Причина</label>
-            <input
-              className="text-field"
-              value={writeOffReason}
-              onChange={(e) => setWriteOffReason(e.target.value)}
-              placeholder="Расход, брак, передача…"
-            />
-            <div className="modal-actions">
-              <button type="button" className="ghost-button" onClick={() => setWriteOffItemId(null)}>
-                Отмена
-              </button>
-              <button type="button" className="primary-button" onClick={() => void submitWriteOff()}>
-                Списать
-              </button>
+            <header className="modal-header">
+              <div>
+                <p className="overline">Склад</p>
+                <h3>Списание</h3>
+              </div>
+            </header>
+            <div className="modal-body">
+              <label className="field-label">Количество</label>
+              <input
+                className="text-field"
+                type="number"
+                min={1}
+                value={writeOffQty}
+                onChange={(e) => setWriteOffQty(Math.max(1, Number(e.target.value) || 1))}
+              />
+              <label className="field-label">Причина</label>
+              <input
+                className="text-field"
+                value={writeOffReason}
+                onChange={(e) => setWriteOffReason(e.target.value)}
+                placeholder="Расход, брак, передача…"
+              />
+              <div className="modal-actions">
+                <button type="button" className="ghost-button" onClick={() => setWriteOffItemId(null)}>
+                  Отмена
+                </button>
+                <button type="button" className="primary-button" onClick={() => void submitWriteOff()}>
+                  Списать
+                </button>
+              </div>
             </div>
           </div>
         </div>

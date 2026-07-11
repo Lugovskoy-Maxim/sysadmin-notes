@@ -125,96 +125,98 @@ export function ShareModal({ token, noteId, projectId, noteType, vaultSection, o
           </button>
         </header>
 
-        <p className="modal-copy">
-          Создайте ссылку для доступа к {subjectLabel} без аккаунта. Секреты шифруются на сервере и расшифровываются только при просмотре по ссылке.
-        </p>
+        <div className="modal-body">
+          <p className="modal-copy">
+            Создайте ссылку для доступа к {subjectLabel} без аккаунта. Секреты шифруются на сервере и расшифровываются только при просмотре по ссылке.
+          </p>
 
-        {!share ? (
-          <>
-            <label className="field-label">Название ссылки (необязательно)</label>
-            <input
-              className="text-field"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Для себя: «Доступы staging»"
-            />
+          {!share ? (
+            <>
+              <label className="field-label">Название ссылки (необязательно)</label>
+              <input
+                className="text-field"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Для себя: «Доступы staging»"
+              />
 
-            <label className="field-label">Что открыть</label>
-            <div className="share-mode-grid">
-              {modeOptions.map((opt) => {
-                const Icon = opt.icon;
-                return (
+              <label className="field-label">Что открыть</label>
+              <div className="share-mode-grid">
+                {modeOptions.map((opt) => {
+                  const Icon = opt.icon;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`share-mode-card ${shareMode === opt.id ? "active" : ""}`}
+                      onClick={() => setShareMode(opt.id)}
+                    >
+                      <Icon size={16} />
+                      <strong>{opt.label}</strong>
+                      <small>{opt.hint}</small>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <label className="field-label">
+                <Clock size={14} />
+                Срок действия
+              </label>
+              <div className="expiry-picker">
+                {expiryOptions.map((opt) => (
                   <button
-                    key={opt.id}
+                    key={opt.label}
                     type="button"
-                    className={`share-mode-card ${shareMode === opt.id ? "active" : ""}`}
-                    onClick={() => setShareMode(opt.id)}
+                    className={expiryDays === opt.days ? "active" : ""}
+                    onClick={() => setExpiryDays(opt.days)}
                   >
-                    <Icon size={16} />
-                    <strong>{opt.label}</strong>
-                    <small>{opt.hint}</small>
+                    {opt.label}
                   </button>
-                );
-              })}
-            </div>
+                ))}
+              </div>
 
-            <label className="field-label">
-              <Clock size={14} />
-              Срок действия
-            </label>
-            <div className="expiry-picker">
-              {expiryOptions.map((opt) => (
-                <button
-                  key={opt.label}
-                  type="button"
-                  className={expiryDays === opt.days ? "active" : ""}
-                  onClick={() => setExpiryDays(opt.days)}
-                >
-                  {opt.label}
+              <label className="field-label">
+                <Lock size={14} />
+                Пароль на ссылку (необязательно)
+              </label>
+              <input
+                className="text-field"
+                type="password"
+                value={linkPassword}
+                onChange={(e) => setLinkPassword(e.target.value)}
+                placeholder="Минимум 4 символа"
+                minLength={4}
+              />
+            </>
+          ) : null}
+
+          {error ? <p className="error-text">{error}</p> : null}
+
+          {share ? (
+            <div className="share-result">
+              <div className="share-url-box">
+                <Link2 size={16} />
+                <input readOnly value={shareUrl} aria-label="Ссылка для шаринга" />
+                <button className="ghost-button compact" onClick={() => void copyLink()}>
+                  <Copy size={14} />
+                  Копировать
                 </button>
-              ))}
+              </div>
+              <p className="share-expiry">
+                Режим: {share.shareMode === "passwords" ? "только пароли" : share.shareMode === "full" ? "с секретами" : "без секретов"}
+                {share.expiresAt
+                  ? ` · истекает ${new Date(share.expiresAt).toLocaleDateString("ru-RU")}`
+                  : " · без срока"}
+                {linkPassword ? " · защищена паролем" : ""}
+              </p>
             </div>
-
-            <label className="field-label">
-              <Lock size={14} />
-              Пароль на ссылку (необязательно)
-            </label>
-            <input
-              className="text-field"
-              type="password"
-              value={linkPassword}
-              onChange={(e) => setLinkPassword(e.target.value)}
-              placeholder="Минимум 4 символа"
-              minLength={4}
-            />
-          </>
-        ) : null}
-
-        {error ? <p className="error-text">{error}</p> : null}
-
-        {share ? (
-          <div className="share-result">
-            <div className="share-url-box">
-              <Link2 size={16} />
-              <input readOnly value={shareUrl} aria-label="Ссылка для шаринга" />
-              <button className="ghost-button compact" onClick={() => void copyLink()}>
-                <Copy size={14} />
-                Копировать
-              </button>
-            </div>
-            <p className="share-expiry">
-              Режим: {share.shareMode === "passwords" ? "только пароли" : share.shareMode === "full" ? "с секретами" : "без секретов"}
-              {share.expiresAt
-                ? ` · истекает ${new Date(share.expiresAt).toLocaleDateString("ru-RU")}`
-                : " · без срока"}
-              {linkPassword ? " · защищена паролем" : ""}
-            </p>
-          </div>
-        ) : (
-          <button className="primary-button full" onClick={() => void createShare()} disabled={loading}>
-            {loading ? "Создание..." : "Создать ссылку"}
-          </button>
-        )}
+          ) : (
+            <button className="primary-button full" onClick={() => void createShare()} disabled={loading}>
+              {loading ? "Создание..." : "Создать ссылку"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

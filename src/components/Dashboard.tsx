@@ -1029,7 +1029,11 @@ export function Dashboard() {
               <Search size={14} />
             </button>
             {appMode === "vault" ? (
-              <select value={sortMode} onChange={(e) => setSortMode(e.target.value as typeof sortMode)}>
+              <select
+                className="text-field network-select"
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as typeof sortMode)}
+              >
                 <option value="updated">Сначала новые</option>
                 <option value="title">По названию</option>
                 <option value="type">По типу</option>

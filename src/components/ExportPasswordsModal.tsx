@@ -53,38 +53,40 @@ export function ExportPasswordsModal({ token, projectId, projectName, onClose }:
           </button>
         </header>
 
-        <p className="modal-copy">Выберите формат, совместимый с нужным менеджером паролей.</p>
-        <div className="password-export-formats" role="radiogroup" aria-label="Формат экспорта">
-          {passwordExportFormats.map((item) => {
-            const Icon = item.extension === "json" ? FileJson : FileSpreadsheet;
-            return (
-              <button
-                type="button"
-                role="radio"
-                aria-checked={format === item.id}
-                className={format === item.id ? "active" : ""}
-                key={item.id}
-                onClick={() => setFormat(item.id)}
-              >
-                <Icon size={17} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        <div className="modal-body">
+          <p className="modal-copy">Выберите формат, совместимый с нужным менеджером паролей.</p>
+          <div className="password-export-formats" role="radiogroup" aria-label="Формат экспорта">
+            {passwordExportFormats.map((item) => {
+              const Icon = item.extension === "json" ? FileJson : FileSpreadsheet;
+              return (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={format === item.id}
+                  className={format === item.id ? "active" : ""}
+                  key={item.id}
+                  onClick={() => setFormat(item.id)}
+                >
+                  <Icon size={17} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
-        <div className="export-security-warning">
-          <ShieldAlert size={17} />
-          <p>Файл содержит пароли без шифрования. Храните его временно и удалите после переноса.</p>
-        </div>
-        {error ? <p className="error-text">{error}</p> : null}
+          <div className="export-security-warning">
+            <ShieldAlert size={17} />
+            <p>Файл содержит пароли без шифрования. Храните его временно и удалите после переноса.</p>
+          </div>
+          {error ? <p className="error-text">{error}</p> : null}
 
-        <div className="dialog-actions">
-          <button className="ghost-button" onClick={onClose}>Отмена</button>
-          <button className="primary-button" onClick={() => void handleExport()} disabled={loading}>
-            <Download size={16} />
-            {loading ? "Подготовка…" : "Скачать"}
-          </button>
+          <div className="dialog-actions">
+            <button className="ghost-button" onClick={onClose}>Отмена</button>
+            <button className="primary-button" onClick={() => void handleExport()} disabled={loading}>
+              <Download size={16} />
+              {loading ? "Подготовка…" : "Скачать"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

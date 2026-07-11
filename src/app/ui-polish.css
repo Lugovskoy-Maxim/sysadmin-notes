@@ -1,0 +1,329 @@
+/* Unified forms, tables, and modals */
+
+:root {
+  --control-height: 40px;
+  --control-radius: 10px;
+}
+
+input.text-field:not([type="checkbox"]):not([type="radio"]),
+select.text-field,
+select.network-select,
+.form-control input:not([type="checkbox"]):not([type="radio"]),
+.form-control select,
+.ui-input,
+.list-tools select,
+.action-dropdown select,
+.meta-field select {
+  min-height: var(--control-height);
+  border-radius: var(--control-radius);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+textarea.text-field,
+.form-control textarea,
+.network-inspector textarea.text-field,
+.modal-body textarea.text-field {
+  height: auto;
+  min-height: 88px;
+  padding: 10px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+select:not([multiple]) {
+  appearance: none;
+  color: var(--foreground);
+  background-color: var(--input-bg);
+  padding-right: 36px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+}
+
+select option,
+select optgroup {
+  color: var(--foreground);
+  background-color: var(--panel);
+}
+
+.field-label {
+  display: block;
+  margin: 0 0 6px;
+}
+
+.modal-card:not(.settings-modal) {
+  width: min(100%, 520px);
+  max-height: min(92dvh, 880px);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 0;
+}
+
+.modal-card:not(.settings-modal) > .modal-header {
+  flex-shrink: 0;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 20px 20px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.modal-body .modal-actions,
+.modal-body .dialog-actions {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.modal-body .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-card:not(.settings-modal) > .column-editor-list,
+.modal-card:not(.settings-modal) > .ghost-button.full,
+.modal-card:not(.settings-modal) > .modal-actions {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.modal-card:not(.settings-modal) > .modal-actions {
+  margin-bottom: 20px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.column-editor-modal {
+  width: min(100%, 680px);
+}
+
+.column-editor-modal .column-editor-list {
+  padding: 16px 20px 0;
+  max-height: min(50vh, 420px);
+  overflow-y: auto;
+}
+
+.column-editor-row {
+  grid-template-columns: 36px minmax(120px, 1fr) 118px 88px 36px;
+  gap: 10px;
+}
+
+.column-editor-row .text-field,
+.column-editor-row select {
+  min-width: 0;
+  width: 100%;
+}
+
+.dynamic-table th,
+.dynamic-table td {
+  vertical-align: middle;
+}
+
+.dynamic-table td {
+  height: 44px;
+}
+
+.dynamic-cell-input {
+  min-height: 44px;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+.dynamic-cell-input:focus {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--teal) 35%, transparent);
+}
+
+.notes-table th,
+.notes-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+
+.writeoff-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.writeoff-table th,
+.writeoff-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.writeoff-table th {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-users-modal {
+  width: min(100%, 760px);
+}
+
+.admin-user-list li {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.admin-user-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.admin-user-actions select,
+.admin-user-actions .ghost-button.compact {
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-user-actions .ghost-button.compact {
+  grid-column: 1 / -1;
+  justify-content: center;
+}
+
+.member-invite-row select,
+.member-actions select {
+  width: 100%;
+  min-height: var(--control-height);
+}
+
+.member-invite-row {
+  grid-template-columns: minmax(0, 1fr) 148px auto;
+  align-items: stretch;
+}
+
+.member-list li {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.member-actions select {
+  min-width: 128px;
+}
+
+.network-inspector,
+.contacts-editor-pane,
+.facility-panel .network-inspector {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.network-inspector .field-label,
+.contacts-editor-pane .field-label {
+  margin-top: 2px;
+}
+
+.contacts-field-with-icon {
+  width: 100%;
+}
+
+.project-modal,
+.share-modal,
+.import-modal,
+.input-dialog,
+.password-export-modal {
+  width: min(100%, 480px);
+}
+
+.writeoff-modal {
+  width: min(100%, 440px);
+}
+
+.writeoff-modal .text-field {
+  width: 100%;
+}
+
+.share-url-box {
+  min-height: var(--control-height);
+  align-items: stretch;
+}
+
+.share-url-box input {
+  min-height: 32px;
+  padding: 8px 4px;
+  color: var(--foreground);
+}
+
+.task-editor-grid .form-control {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.task-editor-grid .form-control input,
+.task-editor-grid .form-control select,
+.task-editor-grid .form-control textarea {
+  width: 100%;
+  min-width: 0;
+}
+
+.task-editor-grid .form-control input[type="date"],
+.task-editor-grid .form-control input[type="number"] {
+  min-height: var(--control-height);
+}
+
+.import-modal .import-tabs {
+  margin: 0;
+}
+
+.password-export-modal {
+  width: min(100%, 560px);
+}
+
+.project-modal-actions {
+  margin-top: 4px;
+}
+
+@media (max-width: 720px) {
+  .column-editor-row {
+    grid-template-columns: 36px 1fr 1fr;
+  }
+
+  .column-editor-row select,
+  .column-editor-row .column-width-input {
+    grid-column: 2 / -1;
+  }
+
+  .member-invite-row {
+    grid-template-columns: 1fr;
+  }
+
+  .member-actions {
+    width: 100%;
+  }
+
+  .member-actions select {
+    flex: 1;
+  }
+
+  .admin-user-actions {
+    grid-template-columns: 1fr;
+  }
+}

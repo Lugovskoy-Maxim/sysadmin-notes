@@ -29,7 +29,7 @@ export function ShortcutsHelp({ onClose }: ShortcutsHelpProps) {
             <X size={18} />
           </button>
         </header>
-        <div className="shortcuts-list">
+        <div className="modal-body shortcuts-list">
           {shortcuts.map((s) => (
             <div key={s.desc} className="shortcut-row">
               <div className="shortcut-keys">

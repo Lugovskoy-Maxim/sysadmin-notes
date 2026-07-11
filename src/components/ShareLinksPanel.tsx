@@ -59,36 +59,38 @@ export function ShareLinksPanel({ token, onClose }: ShareLinksPanelProps) {
           </button>
         </header>
 
-        {loading ? (
-          <p className="modal-copy">Загрузка...</p>
-        ) : links.length ? (
-          <div className="share-links-list">
-            {links.map((link) => (
-              <div key={link.id} className="share-link-row">
-                <Link2 size={16} />
-                <div className="share-link-info">
-                  <strong>{link.title || (link.noteId ? "Запись" : "Проект")}</strong>
-                  <span>
-                    {modeLabel(link.shareMode)}
-                    {link.passwordHash ? " · 🔒" : ""}
-                    {" · "}
-                    {formatDate(link.createdAt)}
-                    {link.expiresAt ? ` · до ${new Date(link.expiresAt).toLocaleDateString("ru-RU")}` : " · без срока"}
-                  </span>
-                  <code>/share/{link.token.slice(0, 12)}…</code>
+        <div className="modal-body">
+          {loading ? (
+            <p className="modal-copy">Загрузка...</p>
+          ) : links.length ? (
+            <div className="share-links-list">
+              {links.map((link) => (
+                <div key={link.id} className="share-link-row">
+                  <Link2 size={16} />
+                  <div className="share-link-info">
+                    <strong>{link.title || (link.noteId ? "Запись" : "Проект")}</strong>
+                    <span>
+                      {modeLabel(link.shareMode)}
+                      {link.passwordHash ? " · 🔒" : ""}
+                      {" · "}
+                      {formatDate(link.createdAt)}
+                      {link.expiresAt ? ` · до ${new Date(link.expiresAt).toLocaleDateString("ru-RU")}` : " · без срока"}
+                    </span>
+                    <code>/share/{link.token.slice(0, 12)}…</code>
+                  </div>
+                  <button className="icon-button small-btn" onClick={() => void copy(link.token)} title="Копировать">
+                    <Copy size={14} />
+                  </button>
+                  <button className="icon-button small-btn danger-icon" onClick={() => void remove(link.id)} title="Удалить">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-                <button className="icon-button small-btn" onClick={() => void copy(link.token)} title="Копировать">
-                  <Copy size={14} />
-                </button>
-                <button className="icon-button small-btn danger-icon" onClick={() => void remove(link.id)} title="Удалить">
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="modal-copy">Нет активных ссылок. Создайте через «Поделиться».</p>
-        )}
+              ))}
+            </div>
+          ) : (
+            <p className="modal-copy">Нет активных ссылок. Создайте через «Поделиться».</p>
+          )}
+        </div>
       </div>
     </div>
   );

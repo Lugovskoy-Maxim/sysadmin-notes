@@ -137,7 +137,11 @@ export function ProjectMembersModal({
                     required
                   />
                 </div>
-                <select value={role} onChange={(e) => setRole(e.target.value as "editor" | "viewer")}>
+                <select
+                  className="text-field network-select"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as "editor" | "viewer")}
+                >
                   <option value="editor">Редактор</option>
                   <option value="viewer">Только чтение</option>
                 </select>
@@ -172,6 +176,7 @@ export function ProjectMembersModal({
                     ) : (
                       <div className="member-actions">
                         <select
+                          className="text-field network-select"
                           value={member.role}
                           onChange={(e) => void changeRole(member, e.target.value as "editor" | "viewer")}
                         >

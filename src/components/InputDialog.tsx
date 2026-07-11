@@ -27,34 +27,36 @@ export function InputDialog({ title, label, placeholder, defaultValue = "", onCo
             <X size={18} />
           </button>
         </header>
-        <label className="field-label">{label}</label>
-        <input
-          className="text-field"
-          autoFocus
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={placeholder}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && value.trim()) {
-              onConfirm(value.trim());
-              onClose();
-            }
-          }}
-        />
-        <div className="dialog-actions">
-          <button className="ghost-button" onClick={onClose}>
-            Отмена
-          </button>
-          <button
-            className="primary-button"
-            disabled={!value.trim()}
-            onClick={() => {
-              onConfirm(value.trim());
-              onClose();
+        <div className="modal-body">
+          <label className="field-label">{label}</label>
+          <input
+            className="text-field"
+            autoFocus
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={placeholder}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && value.trim()) {
+                onConfirm(value.trim());
+                onClose();
+              }
             }}
-          >
-            OK
-          </button>
+          />
+          <div className="dialog-actions">
+            <button className="ghost-button" onClick={onClose}>
+              Отмена
+            </button>
+            <button
+              className="primary-button"
+              disabled={!value.trim()}
+              onClick={() => {
+                onConfirm(value.trim());
+                onClose();
+              }}
+            >
+              OK
+            </button>
+          </div>
         </div>
       </div>
     </div>

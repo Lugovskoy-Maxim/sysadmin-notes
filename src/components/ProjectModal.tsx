@@ -68,64 +68,66 @@ export function ProjectModal({ project, onClose, onSave, onDelete, onExport }: P
           </button>
         </header>
 
-        <label className="field-label">Название</label>
-        <input className="text-field" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <div className="modal-body">
+          <label className="field-label">Название</label>
+          <input className="text-field" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
 
-        <label className="field-label">Описание</label>
-        <input
-          className="text-field"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Краткое описание"
-        />
+          <label className="field-label">Описание</label>
+          <input
+            className="text-field"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Краткое описание"
+          />
 
-        <label className="field-label">Цвет</label>
-        <div className="color-picker">
-          {projectColors.map((c) => (
-            <button
-              key={c}
-              type="button"
-              className={color === c ? "active" : ""}
-              style={{ background: c }}
-              onClick={() => setColor(c)}
-              aria-label={`Цвет ${c}`}
-            />
-          ))}
-        </div>
-
-        <label className="field-label">Иконка</label>
-        <div className="icon-picker">
-          {projectIcons.map((key) => {
-            const Icon = iconMap[key];
-            return (
-              <button key={key} type="button" className={icon === key ? "active" : ""} onClick={() => setIcon(key)}>
-                <Icon size={16} />
-              </button>
-            );
-          })}
-        </div>
-
-        <button className="primary-button full" onClick={() => void handleSubmit()} disabled={loading || !name.trim()}>
-          {loading ? "Сохранение..." : project ? "Сохранить" : "Создать проект"}
-        </button>
-        {error ? <p className="form-error project-form-error">{error}</p> : null}
-
-        {project ? (
-          <div className="project-modal-actions">
-            {onExport ? (
-              <button className="ghost-button" onClick={onExport}>
-                <Download size={16} />
-                Экспорт JSON
-              </button>
-            ) : null}
-            {onDelete ? (
-              <button className="danger-button" onClick={() => void handleDelete()} disabled={loading}>
-                <Trash2 size={16} />
-                Удалить проект
-              </button>
-            ) : null}
+          <label className="field-label">Цвет</label>
+          <div className="color-picker">
+            {projectColors.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className={color === c ? "active" : ""}
+                style={{ background: c }}
+                onClick={() => setColor(c)}
+                aria-label={`Цвет ${c}`}
+              />
+            ))}
           </div>
-        ) : null}
+
+          <label className="field-label">Иконка</label>
+          <div className="icon-picker">
+            {projectIcons.map((key) => {
+              const Icon = iconMap[key];
+              return (
+                <button key={key} type="button" className={icon === key ? "active" : ""} onClick={() => setIcon(key)}>
+                  <Icon size={16} />
+                </button>
+              );
+            })}
+          </div>
+
+          <button className="primary-button full" onClick={() => void handleSubmit()} disabled={loading || !name.trim()}>
+            {loading ? "Сохранение..." : project ? "Сохранить" : "Создать проект"}
+          </button>
+          {error ? <p className="form-error project-form-error">{error}</p> : null}
+
+          {project ? (
+            <div className="project-modal-actions">
+              {onExport ? (
+                <button className="ghost-button" onClick={onExport}>
+                  <Download size={16} />
+                  Экспорт JSON
+                </button>
+              ) : null}
+              {onDelete ? (
+                <button className="danger-button" onClick={() => void handleDelete()} disabled={loading}>
+                  <Trash2 size={16} />
+                  Удалить проект
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

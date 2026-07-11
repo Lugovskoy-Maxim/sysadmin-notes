@@ -4665,13 +4665,6 @@ button.plan-badge {
   vertical-align: -2px;
 }
 
-.admin-user-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
 .project-shared-badge {
   display: inline-block;
   margin-left: 6px;
