@@ -15,6 +15,8 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 
 rm -rf "$APP_DIR/.npm-cache"
 docker image prune -f >/dev/null 2>&1 || true
+export DOCKER_BUILDKIT="${DOCKER_BUILDKIT:-1}"
+export COMPOSE_DOCKER_CLI_BUILD="${COMPOSE_DOCKER_CLI_BUILD:-1}"
 
 "${DC[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build --remove-orphans
 "${DC[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile tools run --rm migrate

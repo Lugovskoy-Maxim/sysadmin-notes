@@ -50,6 +50,7 @@ services:
       TELEGRAM_BOT_USERNAME: "${TELEGRAM_BOT_USERNAME:-}"
       TELEGRAM_MODE: "${TELEGRAM_MODE:-polling}"
       TELEGRAM_WEBHOOK_SECRET: "${TELEGRAM_WEBHOOK_SECRET:-}"
+      ADMIN_PROMOTION_SECRET: "${ADMIN_PROMOTION_SECRET:-}"
     volumes:
       - api-uploads:/app/uploads
     depends_on:

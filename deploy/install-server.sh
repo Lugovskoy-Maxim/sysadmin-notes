@@ -14,7 +14,28 @@ apt-get install -y -qq ca-certificates curl git nginx certbot python3-certbot-ng
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | sh
 fi
-apt-get install -y -qq docker-compose-plugin || true
+
+# docker-compose-plugin is not in all distro repos; get.docker.com usually adds compose v2.
+if ! docker compose version >/dev/null 2>&1; then
+  apt-get install -y -qq docker-compose-plugin 2>/dev/null || true
+fi
+
+if ! docker compose version >/dev/null 2>&1; then
+  echo "==> Installing Docker Compose plugin manually"
+  mkdir -p /usr/local/lib/docker/cli-plugins
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64) compose_arch="x86_64" ;;
+    aarch64|arm64) compose_arch="aarch64" ;;
+    *) echo "Unsupported architecture for compose: $arch" >&2; exit 1 ;;
+  esac
+  curl -fsSL \
+    "https://github.com/docker/compose/releases/download/v2.36.2/docker-compose-linux-${compose_arch}" \
+    -o /usr/local/lib/docker/cli-plugins/docker-compose
+  chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+fi
+
+docker compose version
 
 echo "==> Stopping old manga translator stack if present"
 for dir in /opt/manhwa-translator /opt/manga-translator /opt/translator /var/www/manga /root/manga-translator; do
@@ -61,10 +82,16 @@ if [ ! -f "$APP_DIR/.env.production" ]; then
   sed -i "s|JWT_SECRET=.*|JWT_SECRET=$JWT|" "$APP_DIR/.env.production"
   sed -i "s|VAULT_ENCRYPTION_SECRET=.*|VAULT_ENCRYPTION_SECRET=$VAULT|" "$APP_DIR/.env.production"
   sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$PG|" "$APP_DIR/.env.production"
+  if grep -q '^ADMIN_PROMOTION_SECRET=' "$APP_DIR/.env.production"; then
+    ADMIN_SECRET=$(openssl rand -base64 24 | tr -d '\n')
+    sed -i "s|ADMIN_PROMOTION_SECRET=.*|ADMIN_PROMOTION_SECRET=$ADMIN_SECRET|" "$APP_DIR/.env.production"
+  fi
   echo "Generated secrets in $APP_DIR/.env.production"
 fi
 
-echo "==> Starting application"
+echo "==> Starting application (first Docker build may take 5–15 minutes)"
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
 cd "$APP_DIR"
 if docker compose version >/dev/null 2>&1; then
   DC=(docker compose)
