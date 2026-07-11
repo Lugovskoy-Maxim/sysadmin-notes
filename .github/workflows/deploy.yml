@@ -16,6 +16,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate deploy secrets
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          missing=0
+
+          if [ -z "${SSH_HOST:-}" ]; then
+            echo "::error::Secret SSH_HOST is missing. Set it in Repository Settings -> Secrets and variables -> Actions."
+            missing=1
+          fi
+
+          if [ -z "${SSH_USER:-}" ]; then
+            echo "::error::Secret SSH_USER is missing (for example: root or deploy)."
+            missing=1
+          fi
+
+          if [ -z "${SSH_PRIVATE_KEY:-}" ]; then
+            echo "::error::Secret SSH_PRIVATE_KEY is missing or empty."
+            echo "::error::Generate a key with: bash deploy/setup-github-deploy.sh"
+            missing=1
+          elif ! printf '%s' "$SSH_PRIVATE_KEY" | grep -q 'BEGIN .*PRIVATE KEY'; then
+            echo "::error::SSH_PRIVATE_KEY must be a PEM/OpenSSH private key with BEGIN/END lines."
+            echo "::error::Do not paste the .pub file. Use the private key file contents."
+            missing=1
+          fi
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "Deploy secrets look valid."
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
