@@ -15,6 +15,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Check SSH secrets
+        id: ssh
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -24,13 +25,17 @@ jobs:
           set -euo pipefail
           [ -n "${SSH_HOST:-}" ] || { echo "::error::SSH_HOST is required"; exit 1; }
           [ -n "${SSH_USER:-}" ] || { echo "::error::SSH_USER is required"; exit 1; }
-          if [ -z "${SSH_PASSWORD:-}" ] && [ -z "${SSH_PRIVATE_KEY:-}" ]; then
+          if [ -n "${SSH_PASSWORD:-}" ]; then
+            echo "auth=password" >> "$GITHUB_OUTPUT"
+          elif [ -n "${SSH_PRIVATE_KEY:-}" ]; then
+            echo "auth=key" >> "$GITHUB_OUTPUT"
+          else
             echo "::error::Set SSH_PASSWORD or SSH_PRIVATE_KEY"
             exit 1
           fi
 
       - name: Deploy over SSH (password)
-        if: ${{ secrets.SSH_PASSWORD != '' }}
+        if: steps.ssh.outputs.auth == 'password'
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -46,7 +51,7 @@ jobs:
             bash deploy/deploy.sh
 
       - name: Deploy over SSH (key)
-        if: ${{ secrets.SSH_PASSWORD == '' }}
+        if: steps.ssh.outputs.auth == 'key'
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
