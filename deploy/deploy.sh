@@ -4,11 +4,9 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 cd "$APP_DIR"
 
-if docker compose version >/dev/null 2>&1; then
-  DC=(docker compose)
-else
-  DC=(docker-compose)
-fi
+COMPOSE_SH="$(cd "$(dirname "$0")" && pwd)/compose.sh"
+chmod +x "$COMPOSE_SH"
+DC=("$COMPOSE_SH")
 
 ENV_FILE="${ENV_FILE:-.env.production}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"

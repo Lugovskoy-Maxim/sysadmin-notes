@@ -93,11 +93,7 @@ echo "==> Starting application (first Docker build may take 5–15 minutes)"
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 cd "$APP_DIR"
-if docker compose version >/dev/null 2>&1; then
-  DC=(docker compose)
-else
-  DC=(docker-compose)
-fi
+bash deploy/compose.sh version
 bash deploy/deploy.sh
 systemctl reload nginx
 
