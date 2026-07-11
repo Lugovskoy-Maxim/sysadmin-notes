@@ -35,7 +35,19 @@ if ! docker compose version >/dev/null 2>&1; then
   chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 fi
 
-docker compose version
+if ! docker compose version >/dev/null 2>&1 && ! command -v docker-compose >/dev/null 2>&1; then
+  echo "==> Installing standalone docker-compose binary"
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64) compose_arch="x86_64" ;;
+    aarch64|arm64) compose_arch="aarch64" ;;
+    *) echo "Unsupported architecture for compose: $arch" >&2; exit 1 ;;
+  esac
+  curl -fsSL \
+    "https://github.com/docker/compose/releases/download/v2.36.2/docker-compose-linux-${compose_arch}" \
+    -o /usr/local/bin/docker-compose
+  chmod +x /usr/local/bin/docker-compose
+fi
 
 echo "==> Stopping old manga translator stack if present"
 for dir in /opt/manhwa-translator /opt/manga-translator /opt/translator /var/www/manga /root/manga-translator; do
