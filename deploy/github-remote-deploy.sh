@@ -17,6 +17,7 @@ resolve_app_dir() {
       return 0
     fi
   done
+  
 
   if [ -n "${DEPLOY_PATH:-}" ]; then
     printf '%s' "$DEPLOY_PATH"
