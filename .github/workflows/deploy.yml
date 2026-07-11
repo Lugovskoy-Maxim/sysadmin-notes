@@ -45,8 +45,6 @@ jobs:
             echo "Using SSH key authentication."
           else
             echo "::error::Set either SSH_PASSWORD (for password login) or SSH_PRIVATE_KEY (for key login)."
-            echo "::error::Password: add secret SSH_PASSWORD with your server password."
-            echo "::error::Key: run bash deploy/setup-github-deploy.sh"
             missing=1
           fi
 
@@ -57,35 +55,27 @@ jobs:
       - name: Deploy over SSH (password)
         if: steps.auth.outputs.method == 'password'
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
+          envs: DEPLOY_PATH
           script_stop: true
-          script: |
-            set -euo pipefail
-            APP_DIR="${{ secrets.DEPLOY_PATH || '/opt/sysadmin-notes' }}"
-            cd "$APP_DIR"
-            git fetch origin main
-            git reset --hard origin/main
-            bash deploy/deploy.sh
-            docker image prune -f
+          script_path: deploy/github-remote-deploy.sh
 
       - name: Deploy over SSH (key)
         if: steps.auth.outputs.method == 'key'
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
+          envs: DEPLOY_PATH
           script_stop: true
-          script: |
-            set -euo pipefail
-            APP_DIR="${{ secrets.DEPLOY_PATH || '/opt/sysadmin-notes' }}"
-            cd "$APP_DIR"
-            git fetch origin main
-            git reset --hard origin/main
-            bash deploy/deploy.sh
-            docker image prune -f
+          script_path: deploy/github-remote-deploy.sh
