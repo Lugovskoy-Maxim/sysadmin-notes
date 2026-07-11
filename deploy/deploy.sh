@@ -14,11 +14,18 @@ ENV_FILE="${ENV_FILE:-.env.production}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 
 rm -rf "$APP_DIR/.npm-cache"
-docker image prune -f >/dev/null 2>&1 || true
+bash "$(dirname "$0")/free-disk.sh"
+
 export DOCKER_BUILDKIT="${DOCKER_BUILDKIT:-1}"
 export COMPOSE_DOCKER_CLI_BUILD="${COMPOSE_DOCKER_CLI_BUILD:-1}"
 
-"${DC[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build --remove-orphans
+# Build one service at a time to reduce peak disk usage on small VPS disks.
+"${DC[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build api
+docker builder prune -af >/dev/null 2>&1 || true
+"${DC[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build web
+docker builder prune -af >/dev/null 2>&1 || true
+
+"${DC[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --remove-orphans
 "${DC[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile tools run --rm migrate
 
 if [ -f deploy/nginx/lugodev.ru.conf ] && [ -d /etc/nginx/sites-available ]; then
